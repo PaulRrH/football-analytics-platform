@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import {
   PrismaClient,
   Confederation,
@@ -6,6 +8,12 @@ import {
   MatchStage,
   MatchStatus,
 } from '@prisma/client';
+import {
+  type HistoricalMatchRow,
+  mapTournamentToCompetitionType,
+  mapTournamentToMatchStage,
+  parseHistoricalMatchesCsv,
+} from '../src/common/utils/historical-results.util';
 
 const prisma = new PrismaClient();
 
@@ -52,43 +60,6 @@ const GROUPS: string[][] = [
   ['Netherlands', 'Belgium', 'Germany'],
 ];
 
-// Partidos amistosos finalizados (con goles y estadisticas) para alimentar el motor estadistico
-const FRIENDLY_RESULTS: Array<{
-  home: string;
-  away: string;
-  homeGoals: number;
-  awayGoals: number;
-  daysAgo: number;
-  homeStats: Partial<MatchStatInput>;
-  awayStats: Partial<MatchStatInput>;
-}> = [
-  { home: 'Argentina', away: 'Brazil', homeGoals: 2, awayGoals: 1, daysAgo: 120, homeStats: { possession: 54, shotsTotal: 14, shotsOnTarget: 7, corners: 6, fouls: 10, passes: 480, passAccuracy: 87 }, awayStats: { possession: 46, shotsTotal: 11, shotsOnTarget: 4, corners: 4, fouls: 13, passes: 410, passAccuracy: 83 } },
-  { home: 'France', away: 'England', homeGoals: 1, awayGoals: 1, daysAgo: 110, homeStats: { possession: 49, shotsTotal: 10, shotsOnTarget: 5, corners: 5, fouls: 9, passes: 450, passAccuracy: 85 }, awayStats: { possession: 51, shotsTotal: 12, shotsOnTarget: 6, corners: 7, fouls: 8, passes: 470, passAccuracy: 86 } },
-  { home: 'Spain', away: 'Portugal', homeGoals: 3, awayGoals: 1, daysAgo: 100, homeStats: { possession: 60, shotsTotal: 16, shotsOnTarget: 9, corners: 8, fouls: 7, passes: 590, passAccuracy: 91 }, awayStats: { possession: 40, shotsTotal: 8, shotsOnTarget: 3, corners: 3, fouls: 11, passes: 360, passAccuracy: 80 } },
-  { home: 'Germany', away: 'Netherlands', homeGoals: 2, awayGoals: 2, daysAgo: 95, homeStats: { possession: 52, shotsTotal: 13, shotsOnTarget: 6, corners: 5, fouls: 9, passes: 460, passAccuracy: 86 }, awayStats: { possession: 48, shotsTotal: 12, shotsOnTarget: 6, corners: 6, fouls: 10, passes: 430, passAccuracy: 84 } },
-  { home: 'Belgium', away: 'Croatia', homeGoals: 1, awayGoals: 0, daysAgo: 90, homeStats: { possession: 55, shotsTotal: 11, shotsOnTarget: 5, corners: 4, fouls: 8, passes: 440, passAccuracy: 85 }, awayStats: { possession: 45, shotsTotal: 7, shotsOnTarget: 2, corners: 3, fouls: 12, passes: 380, passAccuracy: 81 } },
-  { home: 'Uruguay', away: 'Colombia', homeGoals: 0, awayGoals: 0, daysAgo: 85, homeStats: { possession: 47, shotsTotal: 8, shotsOnTarget: 2, corners: 4, fouls: 10, passes: 400, passAccuracy: 82 }, awayStats: { possession: 53, shotsTotal: 9, shotsOnTarget: 3, corners: 5, fouls: 9, passes: 420, passAccuracy: 84 } },
-  { home: 'Mexico', away: 'United States', homeGoals: 2, awayGoals: 0, daysAgo: 80, homeStats: { possession: 58, shotsTotal: 13, shotsOnTarget: 7, corners: 6, fouls: 11, passes: 470, passAccuracy: 86 }, awayStats: { possession: 42, shotsTotal: 6, shotsOnTarget: 1, corners: 2, fouls: 14, passes: 350, passAccuracy: 79 } },
-  { home: 'Morocco', away: 'Senegal', homeGoals: 1, awayGoals: 1, daysAgo: 75, homeStats: { possession: 50, shotsTotal: 10, shotsOnTarget: 4, corners: 5, fouls: 9, passes: 410, passAccuracy: 83 }, awayStats: { possession: 50, shotsTotal: 9, shotsOnTarget: 4, corners: 4, fouls: 10, passes: 405, passAccuracy: 82 } },
-  { home: 'Japan', away: 'Italy', homeGoals: 1, awayGoals: 2, daysAgo: 70, homeStats: { possession: 46, shotsTotal: 9, shotsOnTarget: 3, corners: 3, fouls: 8, passes: 400, passAccuracy: 84 }, awayStats: { possession: 54, shotsTotal: 12, shotsOnTarget: 6, corners: 6, fouls: 9, passes: 450, passAccuracy: 87 } },
-  { home: 'Brazil', away: 'Spain', homeGoals: 1, awayGoals: 3, daysAgo: 60, homeStats: { possession: 45, shotsTotal: 10, shotsOnTarget: 4, corners: 4, fouls: 10, passes: 420, passAccuracy: 84 }, awayStats: { possession: 55, shotsTotal: 15, shotsOnTarget: 8, corners: 7, fouls: 8, passes: 540, passAccuracy: 90 } },
-  { home: 'Argentina', away: 'France', homeGoals: 1, awayGoals: 0, daysAgo: 45, homeStats: { possession: 51, shotsTotal: 11, shotsOnTarget: 5, corners: 5, fouls: 9, passes: 440, passAccuracy: 85 }, awayStats: { possession: 49, shotsTotal: 9, shotsOnTarget: 3, corners: 4, fouls: 10, passes: 425, passAccuracy: 83 } },
-  { home: 'England', away: 'Netherlands', homeGoals: 2, awayGoals: 1, daysAgo: 30, homeStats: { possession: 52, shotsTotal: 12, shotsOnTarget: 6, corners: 6, fouls: 8, passes: 455, passAccuracy: 86 }, awayStats: { possession: 48, shotsTotal: 10, shotsOnTarget: 4, corners: 4, fouls: 9, passes: 415, passAccuracy: 83 } },
-];
-
-interface MatchStatInput {
-  possession: number;
-  shotsTotal: number;
-  shotsOnTarget: number;
-  corners: number;
-  fouls: number;
-  yellowCards: number;
-  redCards: number;
-  passes: number;
-  passAccuracy: number;
-  offsides: number;
-}
-
 async function seedTeams(): Promise<Map<string, string>> {
   const idByName = new Map<string, string>();
 
@@ -132,19 +103,6 @@ async function seedRankingHistory(idByName: Map<string, string>) {
 }
 
 async function seedCompetitions(idByName: Map<string, string>) {
-  const now = new Date();
-
-  const friendlyCompetition = await prisma.competition.create({
-    data: {
-      name: 'Fecha FIFA - Amistosos Internacionales 2025',
-      type: CompetitionType.FRIENDLY,
-      season: '2025',
-      startDate: new Date(now.getFullYear() - 1, 0, 1),
-      endDate: new Date(now.getFullYear() - 1, 11, 31),
-      status: CompetitionStatus.FINISHED,
-    },
-  });
-
   const worldCup = await prisma.competition.create({
     data: {
       name: 'FIFA World Cup 2026',
@@ -175,60 +133,58 @@ async function seedCompetitions(idByName: Map<string, string>) {
     groupIndex++;
   }
 
-  console.log('Competiciones creadas: 2');
-  return { friendlyCompetition, worldCup };
+  console.log('Competición Mundial 2026 creada');
+  return { worldCup };
 }
 
-async function seedFriendlyMatches(
-  idByName: Map<string, string>,
-  competitionId: string,
-) {
-  const now = new Date();
+// Carga el historial real de partidos entre los equipos del seed
+// (fuente: martj42/international_results, CC0).
+async function seedHistoricalMatches(idByName: Map<string, string>) {
+  const csvPath = path.join(__dirname, 'data', 'historical-matches.csv');
+  const rows = parseHistoricalMatchesCsv(fs.readFileSync(csvPath, 'utf-8'));
 
-  for (const result of FRIENDLY_RESULTS) {
-    const matchDate = new Date(now);
-    matchDate.setDate(matchDate.getDate() - result.daysAgo);
+  const rowsByTournament = new Map<string, HistoricalMatchRow[]>();
+  for (const row of rows) {
+    const tournamentRows = rowsByTournament.get(row.tournament) ?? [];
+    tournamentRows.push(row);
+    rowsByTournament.set(row.tournament, tournamentRows);
+  }
 
-    const match = await prisma.match.create({
+  const competitionIdByTournament = new Map<string, string>();
+  for (const [tournament, tournamentRows] of rowsByTournament) {
+    const dates = tournamentRows.map((row) => new Date(row.date).getTime());
+    const startDate = new Date(Math.min(...dates));
+    const endDate = new Date(Math.max(...dates));
+
+    const competition = await prisma.competition.create({
       data: {
-        competitionId,
-        homeTeamId: idByName.get(result.home)!,
-        awayTeamId: idByName.get(result.away)!,
-        matchDate,
-        venue: 'Estadio Neutral',
-        city: 'Ciudad Sede',
-        stage: MatchStage.FRIENDLY,
-        round: 'Amistoso',
-        homeGoals: result.homeGoals,
-        awayGoals: result.awayGoals,
-        status: MatchStatus.FINISHED,
+        name: tournament,
+        type: mapTournamentToCompetitionType(tournament),
+        season: `${startDate.getUTCFullYear()}-${endDate.getUTCFullYear()}`,
+        startDate,
+        endDate,
+        status: CompetitionStatus.FINISHED,
       },
     });
 
-    await prisma.matchStatistic.create({
-      data: {
-        matchId: match.id,
-        teamId: idByName.get(result.home)!,
-        yellowCards: 1,
-        redCards: 0,
-        offsides: 1,
-        ...result.homeStats,
-      } as never,
-    });
-
-    await prisma.matchStatistic.create({
-      data: {
-        matchId: match.id,
-        teamId: idByName.get(result.away)!,
-        yellowCards: 2,
-        redCards: 0,
-        offsides: 2,
-        ...result.awayStats,
-      } as never,
-    });
+    competitionIdByTournament.set(tournament, competition.id);
   }
 
-  console.log(`Partidos amistosos creados: ${FRIENDLY_RESULTS.length}`);
+  await prisma.match.createMany({
+    data: rows.map((row) => ({
+      competitionId: competitionIdByTournament.get(row.tournament)!,
+      homeTeamId: idByName.get(row.homeTeam)!,
+      awayTeamId: idByName.get(row.awayTeam)!,
+      matchDate: new Date(row.date),
+      stage: mapTournamentToMatchStage(row.tournament),
+      homeGoals: row.homeGoals,
+      awayGoals: row.awayGoals,
+      status: MatchStatus.FINISHED,
+    })),
+  });
+
+  console.log(`Competiciones históricas creadas: ${rowsByTournament.size}`);
+  console.log(`Partidos históricos importados: ${rows.length}`);
 }
 
 async function seedWorldCupMatches(idByName: Map<string, string>, competitionId: string) {
@@ -288,8 +244,8 @@ async function main() {
   console.log('Sembrando datos...');
   const idByName = await seedTeams();
   await seedRankingHistory(idByName);
-  const { friendlyCompetition, worldCup } = await seedCompetitions(idByName);
-  await seedFriendlyMatches(idByName, friendlyCompetition.id);
+  const { worldCup } = await seedCompetitions(idByName);
+  await seedHistoricalMatches(idByName);
   await seedWorldCupMatches(idByName, worldCup.id);
 
   console.log('Seed completado.');

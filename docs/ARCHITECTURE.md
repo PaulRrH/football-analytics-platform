@@ -168,8 +168,6 @@ fases futuras (`predictions`, `simulations`, etc.).
 
 ## Roadmap (fases futuras)
 
-- **Fase 2** (pendiente): carga de datos históricos reales (fuente de
-  datos a definir).
 - **Fase 3**: motor de predicción Elo+Poisson, módulo `predictions`,
   recálculo de Elo al finalizar partidos (domain event). Ver
   [PREDICTION_ENGINE.md](PREDICTION_ENGINE.md).

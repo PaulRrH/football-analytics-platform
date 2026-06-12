@@ -201,7 +201,12 @@ npm run seed                 # datos iniciales (equipos, competición y partidos
 npx prisma studio             # explorador visual de datos
 ```
 
-El seed (`backend/prisma/seed.ts`) crea un conjunto de selecciones nacionales
-con su `eloRating` inicial, una competición demo (Mundial) y partidos de
-ejemplo con estadísticas — suficiente para probar los endpoints de `teams` y
-`matches` y el dashboard del frontend.
+El seed (`backend/prisma/seed.ts`) crea 18 selecciones nacionales con su
+`eloRating`/`fifaRanking` inicial y su historial de ranking, el Mundial 2026
+como competición demo (`SCHEDULED`, fase de grupos) y el **historial real de
+partidos** entre esas 18 selecciones: ~2465 partidos `FINISHED` (1902-2026),
+importados desde `backend/prisma/data/historical-matches.csv` (dataset
+público `martj42/international_results`, CC0), agrupados en 44 competiciones
+(una por torneo: `FIFA World Cup`, `Copa América`, `UEFA Euro`, `Friendly`,
+etc.). Esto alimenta los endpoints de `teams`, `matches`, `competitions`
+(`standings`) y `stats` (`team-form`, `head-to-head`) con datos reales.
