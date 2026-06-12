@@ -1,6 +1,5 @@
 import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Public } from '../../../../common/decorators/public.decorator';
 import { PrismaService } from '../../../../infrastructure/prisma/prisma.service';
 
 interface HealthResponse {
@@ -14,7 +13,6 @@ interface HealthResponse {
 export class HealthController {
   constructor(private readonly prisma: PrismaService) {}
 
-  @Public()
   @Get()
   @ApiOperation({ summary: 'Estado de la API y conexion a la base de datos' })
   async check(): Promise<HealthResponse> {

@@ -11,7 +11,6 @@ import {
 } from 'ng-apexcharts';
 import { finalize } from 'rxjs';
 import { Team } from '../../core/models';
-import { AuthService } from '../../core/services/auth.service';
 import { TeamsService } from '../../core/services/teams.service';
 import { resolveErrorMessage } from '../../core/utils/http-error.util';
 
@@ -24,10 +23,8 @@ const TOP_TEAMS_COUNT = 10;
   styleUrl: './dashboard.scss',
 })
 export class Dashboard implements OnInit {
-  private readonly authService = inject(AuthService);
   private readonly teamsService = inject(TeamsService);
 
-  readonly currentUser = this.authService.currentUser;
   readonly loading = signal(true);
   readonly errorMessage = signal<string | null>(null);
   readonly topTeams = signal<Team[]>([]);

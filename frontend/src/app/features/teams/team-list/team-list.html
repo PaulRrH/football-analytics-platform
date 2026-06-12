@@ -25,12 +25,10 @@
 
         <span class="team-list__spacer"></span>
 
-        @if (canManage()) {
-          <a mat-flat-button color="primary" routerLink="/teams/new">
-            <mat-icon>add</mat-icon>
-            Nuevo equipo
-          </a>
-        }
+        <a mat-flat-button color="primary" routerLink="/teams/new">
+          <mat-icon>add</mat-icon>
+          Nuevo equipo
+        </a>
       </div>
 
       @if (errorMessage()) {
@@ -76,24 +74,22 @@
           <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef></th>
             <td mat-cell *matCellDef="let team">
-              @if (canManage()) {
-                <button
-                  mat-icon-button
-                  matTooltip="Editar"
-                  (click)="editTeam(team, $event)"
-                  aria-label="Editar equipo"
-                >
-                  <mat-icon>edit</mat-icon>
-                </button>
-                <button
-                  mat-icon-button
-                  matTooltip="Eliminar"
-                  (click)="confirmDelete(team, $event)"
-                  aria-label="Eliminar equipo"
-                >
-                  <mat-icon>delete</mat-icon>
-                </button>
-              }
+              <button
+                mat-icon-button
+                matTooltip="Editar"
+                (click)="editTeam(team, $event)"
+                aria-label="Editar equipo"
+              >
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                matTooltip="Eliminar"
+                (click)="confirmDelete(team, $event)"
+                aria-label="Eliminar equipo"
+              >
+                <mat-icon>delete</mat-icon>
+              </button>
             </td>
           </ng-container>
 

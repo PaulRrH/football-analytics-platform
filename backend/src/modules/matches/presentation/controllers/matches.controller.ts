@@ -10,11 +10,8 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Public } from '../../../../common/decorators/public.decorator';
-import { Roles } from '../../../../common/decorators/roles.decorator';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PaginatedResponseDto } from '../../../../common/dto/paginated-response.dto';
-import { Role } from '../../../../common/enums/role.enum';
 import { CreateMatchDto } from '../../application/dto/create-match.dto';
 import { MatchResponseDto } from '../../application/dto/match-response.dto';
 import { MatchStatisticResponseDto } from '../../application/dto/match-statistic-response.dto';
@@ -28,7 +25,6 @@ import { MatchesService } from '../../application/services/matches.service';
 export class MatchesController {
   constructor(private readonly matchesService: MatchesService) {}
 
-  @Public()
   @Get()
   @ApiOperation({
     summary:
@@ -40,7 +36,6 @@ export class MatchesController {
     return this.matchesService.findAll(query);
   }
 
-  @Public()
   @Get(':id')
   @ApiOperation({
     summary: 'Obtener el detalle de un partido (incluye estadisticas)',
@@ -50,16 +45,12 @@ export class MatchesController {
   }
 
   @Post()
-  @ApiBearerAuth()
-  @Roles(Role.ANALYST, Role.SUPER_ADMIN)
   @ApiOperation({ summary: 'Crear un nuevo partido' })
   create(@Body() dto: CreateMatchDto): Promise<MatchResponseDto> {
     return this.matchesService.create(dto);
   }
 
   @Patch(':id')
-  @ApiBearerAuth()
-  @Roles(Role.ANALYST, Role.SUPER_ADMIN)
   @ApiOperation({ summary: 'Actualizar un partido existente' })
   update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -69,16 +60,12 @@ export class MatchesController {
   }
 
   @Delete(':id')
-  @ApiBearerAuth()
-  @Roles(Role.ANALYST, Role.SUPER_ADMIN)
   @ApiOperation({ summary: 'Eliminar un partido' })
   remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     return this.matchesService.remove(id);
   }
 
   @Put(':id/statistics')
-  @ApiBearerAuth()
-  @Roles(Role.ANALYST, Role.SUPER_ADMIN)
   @ApiOperation({
     summary: 'Crear o actualizar las estadisticas de un equipo en un partido',
   })

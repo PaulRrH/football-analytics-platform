@@ -28,10 +28,6 @@ services:
       NODE_ENV: development
       PORT: 3000
       API_PREFIX: api/v1
-      JWT_ACCESS_SECRET: change_me_access_secret
-      JWT_ACCESS_TTL: 15m
-      JWT_REFRESH_SECRET: change_me_refresh_secret
-      JWT_REFRESH_TTL: 7d
       CORS_ORIGIN: http://localhost:4200
     ports:
       - '3000:3000'

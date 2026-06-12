@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -14,8 +14,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { finalize } from 'rxjs';
-import { Match, MatchStatus, Role } from '../../../core/models';
-import { AuthService } from '../../../core/services/auth.service';
+import { Match, MatchStatus } from '../../../core/models';
 import { MatchesService } from '../../../core/services/matches.service';
 import { resolveErrorMessage } from '../../../core/utils/http-error.util';
 import {
@@ -46,7 +45,6 @@ import {
 })
 export class MatchList implements OnInit {
   private readonly matchesService = inject(MatchesService);
-  private readonly authService = inject(AuthService);
   private readonly dialog = inject(MatDialog);
   private readonly router = inject(Router);
 
@@ -63,8 +61,6 @@ export class MatchList implements OnInit {
   readonly statusControl = new FormControl<MatchStatus | ''>('', { nonNullable: true });
   readonly dateFromControl = new FormControl('', { nonNullable: true });
   readonly dateToControl = new FormControl('', { nonNullable: true });
-
-  readonly canManage = computed(() => this.authService.hasAnyRole(Role.ANALYST, Role.SUPER_ADMIN));
 
   ngOnInit(): void {
     this.loadMatches();

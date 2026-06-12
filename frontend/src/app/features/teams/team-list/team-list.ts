@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -13,8 +13,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { debounceTime, distinctUntilChanged, finalize } from 'rxjs';
-import { Confederation, Role, Team } from '../../../core/models';
-import { AuthService } from '../../../core/services/auth.service';
+import { Confederation, Team } from '../../../core/models';
 import { TeamsService } from '../../../core/services/teams.service';
 import { resolveErrorMessage } from '../../../core/utils/http-error.util';
 import {
@@ -44,7 +43,6 @@ import {
 })
 export class TeamList implements OnInit {
   private readonly teamsService = inject(TeamsService);
-  private readonly authService = inject(AuthService);
   private readonly dialog = inject(MatDialog);
   private readonly router = inject(Router);
 
@@ -67,8 +65,6 @@ export class TeamList implements OnInit {
 
   readonly searchControl = new FormControl('', { nonNullable: true });
   readonly confederationControl = new FormControl<Confederation | ''>('', { nonNullable: true });
-
-  readonly canManage = computed(() => this.authService.hasAnyRole(Role.ANALYST, Role.SUPER_ADMIN));
 
   ngOnInit(): void {
     this.loadTeams();

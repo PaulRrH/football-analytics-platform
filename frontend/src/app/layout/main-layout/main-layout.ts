@@ -1,12 +1,10 @@
-import { Component, inject, signal } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Component, signal } from '@angular/core';
+import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
-import { MatMenuModule } from '@angular/material/menu';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
-import { AuthService } from '../../core/services/auth.service';
 
 interface NavLink {
   label: string;
@@ -28,7 +26,6 @@ const NAV_LINKS: NavLink[] = [
     RouterOutlet,
     MatIconModule,
     MatListModule,
-    MatMenuModule,
     MatSidenavModule,
     MatToolbarModule,
     MatButtonModule,
@@ -37,19 +34,10 @@ const NAV_LINKS: NavLink[] = [
   styleUrl: './main-layout.scss',
 })
 export class MainLayout {
-  private readonly authService = inject(AuthService);
-  private readonly router = inject(Router);
-
-  readonly currentUser = this.authService.currentUser;
   readonly navLinks = NAV_LINKS;
   readonly sidenavOpened = signal(true);
 
   toggleSidenav(): void {
     this.sidenavOpened.update((opened) => !opened);
-  }
-
-  logout(): void {
-    this.authService.logout();
-    void this.router.navigateByUrl('/auth/login');
   }
 }

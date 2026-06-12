@@ -10,7 +10,7 @@ predicción (Elo, Poisson, Monte Carlo) y simulación de torneos.
 | Capa | Tecnología |
 |---|---|
 | Frontend | Angular 20 (standalone), Angular Material, ApexCharts, RxJS |
-| Backend | NestJS, TypeScript, JWT + RBAC, Swagger |
+| Backend | NestJS, TypeScript, Swagger |
 | Base de datos | PostgreSQL + Prisma ORM |
 | Infraestructura | Docker, GitHub Actions, Vercel (frontend), Railway/Render (backend) |
 

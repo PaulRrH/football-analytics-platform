@@ -30,23 +30,6 @@
       <span class="layout__title">Plataforma Mundial de Fútbol</span>
 
       <span class="layout__spacer"></span>
-
-      @if (currentUser(); as user) {
-        <button mat-icon-button [matMenuTriggerFor]="userMenu" aria-label="Menú de usuario">
-          <mat-icon>account_circle</mat-icon>
-        </button>
-        <mat-menu #userMenu="matMenu">
-          <div class="layout__user-info">
-            <strong>{{ user.fullName }}</strong>
-            <span>{{ user.email }}</span>
-            <span class="layout__user-role">{{ user.role }}</span>
-          </div>
-          <button mat-menu-item (click)="logout()">
-            <mat-icon>logout</mat-icon>
-            <span>Cerrar sesión</span>
-          </button>
-        </mat-menu>
-      }
     </mat-toolbar>
 
     <main class="layout__main">

@@ -1,13 +1,11 @@
 import {
   PrismaClient,
-  Role,
   Confederation,
   CompetitionType,
   CompetitionStatus,
   MatchStage,
   MatchStatus,
 } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
@@ -89,31 +87,6 @@ interface MatchStatInput {
   passes: number;
   passAccuracy: number;
   offsides: number;
-}
-
-async function hashPassword(plain: string): Promise<string> {
-  return bcrypt.hash(plain, 10);
-}
-
-async function seedUsers() {
-  const users = [
-    { email: 'admin@worldcup-analytics.com', fullName: 'Super Administrador', role: Role.SUPER_ADMIN, password: 'Admin123!' },
-    { email: 'analyst@worldcup-analytics.com', fullName: 'Analista de Datos', role: Role.ANALYST, password: 'Analyst123!' },
-    { email: 'user@worldcup-analytics.com', fullName: 'Usuario Demo', role: Role.USER, password: 'User123!' },
-  ];
-
-  for (const u of users) {
-    await prisma.user.create({
-      data: {
-        email: u.email,
-        fullName: u.fullName,
-        role: u.role,
-        passwordHash: await hashPassword(u.password),
-      },
-    });
-  }
-
-  console.log(`Usuarios creados: ${users.length}`);
 }
 
 async function seedTeams(): Promise<Map<string, string>> {
@@ -306,9 +279,6 @@ async function cleanDatabase() {
   await prisma.competition.deleteMany();
   await prisma.teamRankingHistory.deleteMany();
   await prisma.team.deleteMany();
-  await prisma.refreshToken.deleteMany();
-  await prisma.auditLog.deleteMany();
-  await prisma.user.deleteMany();
 }
 
 async function main() {
@@ -316,7 +286,6 @@ async function main() {
   await cleanDatabase();
 
   console.log('Sembrando datos...');
-  await seedUsers();
   const idByName = await seedTeams();
   await seedRankingHistory(idByName);
   const { friendlyCompetition, worldCup } = await seedCompetitions(idByName);

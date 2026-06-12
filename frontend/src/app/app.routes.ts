@@ -1,27 +1,8 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './core/guards/auth.guard';
-import { roleGuard } from './core/guards/role.guard';
-import { Role } from './core/models';
 
 export const routes: Routes = [
   {
-    path: 'auth',
-    loadComponent: () => import('./layout/auth-layout/auth-layout').then((m) => m.AuthLayout),
-    children: [
-      {
-        path: 'login',
-        loadComponent: () => import('./features/auth/login/login').then((m) => m.Login),
-      },
-      {
-        path: 'register',
-        loadComponent: () => import('./features/auth/register/register').then((m) => m.Register),
-      },
-      { path: '', redirectTo: 'login', pathMatch: 'full' },
-    ],
-  },
-  {
     path: '',
-    canActivate: [authGuard],
     loadComponent: () => import('./layout/main-layout/main-layout').then((m) => m.MainLayout),
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
@@ -39,13 +20,11 @@ export const routes: Routes = [
           },
           {
             path: 'new',
-            canActivate: [roleGuard(Role.ANALYST, Role.SUPER_ADMIN)],
             loadComponent: () =>
               import('./features/teams/team-form/team-form').then((m) => m.TeamForm),
           },
           {
             path: ':id/edit',
-            canActivate: [roleGuard(Role.ANALYST, Role.SUPER_ADMIN)],
             loadComponent: () =>
               import('./features/teams/team-form/team-form').then((m) => m.TeamForm),
           },
@@ -66,13 +45,11 @@ export const routes: Routes = [
           },
           {
             path: 'new',
-            canActivate: [roleGuard(Role.ANALYST, Role.SUPER_ADMIN)],
             loadComponent: () =>
               import('./features/matches/match-form/match-form').then((m) => m.MatchForm),
           },
           {
             path: ':id/edit',
-            canActivate: [roleGuard(Role.ANALYST, Role.SUPER_ADMIN)],
             loadComponent: () =>
               import('./features/matches/match-form/match-form').then((m) => m.MatchForm),
           },
@@ -80,5 +57,5 @@ export const routes: Routes = [
       },
     ],
   },
-  { path: '**', redirectTo: 'auth/login' },
+  { path: '**', redirectTo: 'dashboard' },
 ];

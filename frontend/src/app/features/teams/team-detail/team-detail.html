@@ -4,7 +4,7 @@
       <mat-icon>arrow_back</mat-icon>
     </a>
 
-    @if (canManage() && team(); as currentTeam) {
+    @if (team(); as currentTeam) {
       <a mat-flat-button color="primary" [routerLink]="['/teams', currentTeam.id, 'edit']">
         <mat-icon>edit</mat-icon>
         Editar

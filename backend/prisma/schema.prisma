@@ -14,12 +14,6 @@ datasource db {
 // Enums
 // ---------------------------------------------------------------------------
 
-enum Role {
-  SUPER_ADMIN
-  ANALYST
-  USER
-}
-
 enum Confederation {
   UEFA
   CONMEBOL
@@ -74,58 +68,6 @@ enum SimulationStatus {
   RUNNING
   COMPLETED
   FAILED
-}
-
-// ---------------------------------------------------------------------------
-// Identity & Access (Auth / RBAC / Audit)
-// ---------------------------------------------------------------------------
-
-model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  passwordHash String
-  fullName     String
-  role         Role     @default(USER)
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  refreshTokens          RefreshToken[]
-  auditLogs              AuditLog[]
-  requestedSimulations   TournamentSimulation[]
-
-  @@map("users")
-}
-
-model RefreshToken {
-  id        String    @id @default(uuid())
-  userId    String
-  tokenHash String
-  expiresAt DateTime
-  revokedAt DateTime?
-  createdAt DateTime  @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@map("refresh_tokens")
-}
-
-model AuditLog {
-  id         String   @id @default(uuid())
-  userId     String?
-  action     String
-  entityType String
-  entityId   String?
-  metadata   Json?
-  ipAddress  String?
-  createdAt  DateTime @default(now())
-
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([userId])
-  @@index([entityType, entityId])
-  @@map("audit_logs")
 }
 
 // ---------------------------------------------------------------------------
@@ -283,7 +225,6 @@ model Prediction {
 model TournamentSimulation {
   id            String           @id @default(uuid())
   competitionId String
-  requestedById String?
   iterations    Int
   status        SimulationStatus @default(PENDING)
   startedAt     DateTime?
@@ -291,7 +232,6 @@ model TournamentSimulation {
   createdAt     DateTime         @default(now())
 
   competition Competition            @relation(fields: [competitionId], references: [id], onDelete: Cascade)
-  requestedBy User?                  @relation(fields: [requestedById], references: [id], onDelete: SetNull)
   teamResults TeamSimulationResult[]
 
   @@index([competitionId])

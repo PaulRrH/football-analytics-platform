@@ -13,8 +13,7 @@ import {
   ChartComponent,
 } from 'ng-apexcharts';
 import { finalize, forkJoin } from 'rxjs';
-import { Role, Team, TeamRankingHistoryEntry } from '../../../core/models';
-import { AuthService } from '../../../core/services/auth.service';
+import { Team, TeamRankingHistoryEntry } from '../../../core/models';
 import { TeamsService } from '../../../core/services/teams.service';
 import { resolveErrorMessage } from '../../../core/utils/http-error.util';
 
@@ -34,14 +33,12 @@ import { resolveErrorMessage } from '../../../core/utils/http-error.util';
 export class TeamDetail implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly teamsService = inject(TeamsService);
-  private readonly authService = inject(AuthService);
 
   readonly loading = signal(true);
   readonly errorMessage = signal<string | null>(null);
   readonly team = signal<Team | null>(null);
   readonly rankingHistory = signal<TeamRankingHistoryEntry[]>([]);
 
-  readonly canManage = computed(() => this.authService.hasAnyRole(Role.ANALYST, Role.SUPER_ADMIN));
   readonly hasHistory = computed(() => this.rankingHistory().length > 0);
 
   readonly chart: ApexChart = { type: 'line', height: 320 };

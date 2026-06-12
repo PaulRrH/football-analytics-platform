@@ -53,7 +53,6 @@ flowchart TB
 | Frontend | Angular 20 standalone + Material + ApexCharts | Reduce boilerplate de módulos, ecosistema maduro de componentes UI |
 | Estado/HTTP | RxJS + HttpClient + interceptors | Integración nativa con Angular |
 | Backend | NestJS (Express) | Arquitectura modular, DI nativa, ideal para Clean Architecture |
-| Auth | JWT (access+refresh) + Passport + RBAC por enum `Role` | Stateless, escala horizontalmente sin sesiones server-side |
 | ORM | Prisma + PostgreSQL | Tipado fuerte, migraciones declarativas |
 | Validación | class-validator / class-transformer | Estándar NestJS, DTOs declarativos |
 | Logging | nestjs-pino (JSON estructurado) | Bajo overhead, agregable en plataformas cloud |
@@ -65,8 +64,8 @@ flowchart TB
 
 ## 3. Arquitectura del backend (Clean Architecture por módulo)
 
-Cada módulo de dominio (`teams`, `matches`, `users`, `auth`, ...) sigue la
-misma estructura en capas:
+Cada módulo de dominio (`teams`, `matches`, ...) sigue la misma estructura en
+capas:
 
 ```
 modules/<modulo>/
@@ -77,7 +76,7 @@ modules/<modulo>/
 ├── infrastructure/
 │   └── repositories/       # Implementación concreta (Prisma) de los puertos
 ├── presentation/
-│   └── controllers/        # Controladores HTTP (Swagger, guards, decoradores)
+│   └── controllers/        # Controladores HTTP (Swagger)
 └── <modulo>.module.ts      # Wiring: liga el token del repositorio a su implementación
 ```
 
@@ -93,9 +92,8 @@ modules/<modulo>/
   equipo, validación de que local ≠ visitante en un partido) y lanzan
   excepciones HTTP semánticas (`NotFoundException`, `ConflictException`,
   `BadRequestException`).
-- **Controladores**: solo mapean rutas HTTP a servicios; las rutas de
-  lectura son `@Public()`, las de escritura requieren
-  `@Roles(Role.ANALYST, Role.SUPER_ADMIN)`.
+- **Controladores**: solo mapean rutas HTTP a servicios. Todos los endpoints
+  son públicos, sin autenticación ni autorización.
 
 Los módulos `teams` y `matches` son la implementación de referencia completa
 de este patrón y sirven de plantilla para los módulos de fases futuras
@@ -121,46 +119,21 @@ de este patrón y sirven de plantilla para los módulos de fases futuras
 - **Rate limiting**: `@nestjs/throttler` (`ThrottlerGuard` global, 100
   req/min por defecto).
 - **Documentación**: Swagger (`@nestjs/swagger`) servido en
-  `${API_PREFIX}/docs`, con esquema Bearer JWT.
+  `${API_PREFIX}/docs`.
 - **Salud**: `GET /health` verifica conectividad a PostgreSQL
   (`SELECT 1` vía Prisma).
 
-## 5. Seguridad: autenticación y RBAC
-
-- Access token JWT (15 min) + refresh token (7 días, hash almacenado en
-  `RefreshToken`, rotación en cada uso, revocable).
-- `JwtAuthGuard` global (`APP_GUARD`) + decorador `@Public()` para rutas
-  abiertas (login, register, listados públicos de teams/matches).
-- `@Roles(Role.SUPER_ADMIN, Role.ANALYST)` + `RolesGuard` para autorización
-  fina por endpoint. Orden de guards globales:
-  `ThrottlerGuard -> JwtAuthGuard -> RolesGuard`.
-- Passwords con `bcrypt`.
-- Tokens vía body JSON (no cookies httpOnly) porque frontend y backend están
-  en dominios distintos (Vercel/Railway). Alternativa documentada: cookies
-  `SameSite=None; Secure` si en el futuro se unifica el dominio.
-
-Roles del sistema (`Role` enum):
-
-| Rol | Capacidades |
-|---|---|
-| `SUPER_ADMIN` | Acceso total, incluyendo gestión de usuarios y roles |
-| `ANALYST` | CRUD de equipos, partidos, estadísticas y (futuro) predicciones |
-| `USER` | Solo lectura de datos públicos (equipos, partidos, rankings) |
-
-## 6. Frontend
+## 5. Frontend
 
 - **Standalone components** (sin `NgModule`), enrutamiento con
   `provideRouter` y *lazy loading* por feature.
-- **Core**: `AuthService` (estado de sesión vía signals), interceptores HTTP
-  (adjuntar JWT, refresco automático en 401), guards de ruta (`authGuard`,
-  `roleGuard`).
-- **Layout**: `MainLayout` (toolbar + sidenav Material) para áreas
-  autenticadas, `AuthLayout` para login/registro.
-- **Features**: `auth`, `dashboard` (ranking Elo vía ApexCharts), `teams`,
+- **Layout**: `MainLayout` (toolbar + sidenav Material) para toda la
+  aplicación.
+- **Features**: `dashboard` (ranking Elo vía ApexCharts), `teams`,
   `matches` — cada una con sus propios componentes de lista/detalle/formulario
   y un servicio HTTP tipado contra los DTOs del backend.
 
-## 7. Infraestructura, Docker, CI/CD
+## 6. Infraestructura, Docker, CI/CD
 
 - `backend/Dockerfile`: build multi-stage `node:20-alpine` (deps → build →
   prod-deps → runtime), genera el cliente Prisma y ejecuta `dist/main.js`
@@ -173,7 +146,7 @@ Roles del sistema (`Role` enum):
   generate, jest unit + e2e con servicio postgres, build) y `frontend`
   (lint, unit tests, build).
 
-## 8. Estrategia de escalabilidad
+## 7. Estrategia de escalabilidad
 
 - **DB**: índices en FKs y `matchDate`; particionado nativo de PostgreSQL
   para `Match`/`MatchStatistic` por temporada cuando el volumen lo requiera;
@@ -183,8 +156,8 @@ Roles del sistema (`Role` enum):
   predicción (TTL + invalidación al actualizar datos) — Fase 4+.
 - **Cómputo pesado asíncrono**: BullMQ + Redis para Monte Carlo y recálculo
   masivo de Elo; workers escalables independientemente de la API.
-- **Horizontal**: API stateless (JWT) detrás del balanceador de
-  Railway/Render; múltiples instancias.
+- **Horizontal**: API stateless detrás del balanceador de Railway/Render;
+  múltiples instancias.
 - **Tiempo real multi-instancia**: adaptador Redis para Socket.io
   (`@socket.io/redis-adapter`) — Fase 5.
 - **API**: paginación obligatoria en listados, `select`/`include` explícito

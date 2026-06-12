@@ -33,10 +33,6 @@ jobs:
       NODE_ENV: test
       API_PREFIX: api/v1
       PORT: 3000
-      JWT_ACCESS_SECRET: test_access_secret
-      JWT_ACCESS_TTL: 15m
-      JWT_REFRESH_SECRET: test_refresh_secret
-      JWT_REFRESH_TTL: 7d
       CORS_ORIGIN: http://localhost:4200
 
     steps:

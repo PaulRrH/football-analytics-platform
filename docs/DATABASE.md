@@ -9,9 +9,6 @@ fases posteriores.
 
 ```mermaid
 erDiagram
-    USER ||--o{ REFRESH_TOKEN : emite
-    USER ||--o{ AUDIT_LOG : genera
-    USER ||--o{ TOURNAMENT_SIMULATION : solicita
     TEAM ||--o{ TEAM_RANKING_HISTORY : historial
     TEAM ||--o{ COMPETITION_TEAM : participa
     TEAM ||--o{ MATCH : "local/visitante"
@@ -29,7 +26,6 @@ erDiagram
 
 | Enum | Valores |
 |---|---|
-| `Role` | `SUPER_ADMIN`, `ANALYST`, `USER` |
 | `Confederation` | `UEFA`, `CONMEBOL`, `CONCACAF`, `CAF`, `AFC`, `OFC` |
 | `CompetitionType` | `WORLD_CUP`, `CONTINENTAL`, `QUALIFIER`, `FRIENDLY`, `CLUB` |
 | `CompetitionStatus` | `UPCOMING`, `ONGOING`, `FINISHED` |
@@ -39,56 +35,6 @@ erDiagram
 | `SimulationStatus` | `PENDING`, `RUNNING`, `COMPLETED`, `FAILED` |
 
 ## Entidades
-
-### User (`users`)
-
-Cuentas de la plataforma. El rol determina el acceso vía RBAC (ver
-[ARCHITECTURE.md](ARCHITECTURE.md#5-seguridad-autenticación-y-rbac)).
-
-| Campo | Tipo | Notas |
-|---|---|---|
-| `id` | `String (uuid)` | PK |
-| `email` | `String` | único |
-| `passwordHash` | `String` | bcrypt |
-| `fullName` | `String` | |
-| `role` | `Role` | default `USER` |
-| `isActive` | `Boolean` | default `true` |
-| `createdAt` / `updatedAt` | `DateTime` | |
-
-Relaciones: `refreshTokens` (1:N), `auditLogs` (1:N), `requestedSimulations`
-(1:N).
-
-### RefreshToken (`refresh_tokens`)
-
-Tokens de refresco con rotación. Solo se almacena el hash del token.
-
-| Campo | Tipo | Notas |
-|---|---|---|
-| `id` | `String (uuid)` | PK |
-| `userId` | `String` | FK -> `User`, `onDelete: Cascade` |
-| `tokenHash` | `String` | |
-| `expiresAt` | `DateTime` | |
-| `revokedAt` | `DateTime?` | `null` = vigente |
-| `createdAt` | `DateTime` | |
-
-Índice: `[userId]`.
-
-### AuditLog (`audit_logs`)
-
-Trazabilidad de acciones administrativas (Fase 6+).
-
-| Campo | Tipo | Notas |
-|---|---|---|
-| `id` | `String (uuid)` | PK |
-| `userId` | `String?` | FK -> `User`, `onDelete: SetNull` |
-| `action` | `String` | p. ej. `team.create` |
-| `entityType` | `String` | p. ej. `Team` |
-| `entityId` | `String?` | |
-| `metadata` | `Json?` | payload libre |
-| `ipAddress` | `String?` | |
-| `createdAt` | `DateTime` | |
-
-Índices: `[userId]`, `[entityType, entityId]`.
 
 ### Team (`teams`)
 
@@ -224,7 +170,6 @@ Ejecución de una simulación Monte Carlo de un torneo completo.
 |---|---|---|
 | `id` | `String (uuid)` | PK |
 | `competitionId` | `String` | FK -> `Competition`, `onDelete: Cascade` |
-| `requestedById` | `String?` | FK -> `User`, `onDelete: SetNull` |
 | `iterations` | `Int` | p. ej. `10000` |
 | `status` | `SimulationStatus` | default `PENDING` |
 | `startedAt` / `completedAt` | `DateTime?` | |
@@ -253,11 +198,11 @@ Probabilidades agregadas por equipo de una simulación.
 ```bash
 cd backend
 npx prisma migrate dev      # crea/actualiza el esquema en PostgreSQL
-npm run seed                 # datos iniciales (roles, usuario admin, equipos, competición y partidos demo)
+npm run seed                 # datos iniciales (equipos, competición y partidos demo)
 npx prisma studio             # explorador visual de datos
 ```
 
-El seed (`backend/prisma/seed.ts`) crea un usuario `SUPER_ADMIN`, un conjunto
-de selecciones nacionales con su `eloRating` inicial, una competición demo
-(Mundial) y partidos de ejemplo con estadísticas — suficiente para probar
-los endpoints de `teams` y `matches` y el dashboard del frontend.
+El seed (`backend/prisma/seed.ts`) crea un conjunto de selecciones nacionales
+con su `eloRating` inicial, una competición demo (Mundial) y partidos de
+ejemplo con estadísticas — suficiente para probar los endpoints de `teams` y
+`matches` y el dashboard del frontend.
