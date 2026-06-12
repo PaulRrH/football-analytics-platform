@@ -25,15 +25,21 @@ export class NullSportsDataProvider implements SportsDataProvider {
     return false;
   }
 
-  async getCompetitions(): Promise<ExternalCompetition[]> {
-    throw new ServiceUnavailableException(NOT_CONFIGURED_MESSAGE);
+  getCompetitions(): Promise<ExternalCompetition[]> {
+    return Promise.reject(
+      new ServiceUnavailableException(NOT_CONFIGURED_MESSAGE),
+    );
   }
 
-  async getTeams(): Promise<ExternalTeam[]> {
-    throw new ServiceUnavailableException(NOT_CONFIGURED_MESSAGE);
+  getTeams(): Promise<ExternalTeam[]> {
+    return Promise.reject(
+      new ServiceUnavailableException(NOT_CONFIGURED_MESSAGE),
+    );
   }
 
-  async getMatches(): Promise<ExternalMatch[]> {
-    throw new ServiceUnavailableException(NOT_CONFIGURED_MESSAGE);
+  getMatches(): Promise<ExternalMatch[]> {
+    return Promise.reject(
+      new ServiceUnavailableException(NOT_CONFIGURED_MESSAGE),
+    );
   }
 }
