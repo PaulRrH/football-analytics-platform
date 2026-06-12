@@ -20,14 +20,14 @@ flowchart TB
         PG[("PostgreSQL\n(Prisma ORM)")]
     end
 
-    subgraph External["APIs Externas (futuro)"]
-        EXT["Proveedores de datos deportivos\n(adapter pattern)"]
+    subgraph External["APIs Externas (opcional)"]
+        EXT["football-data.org v4\n(SportsDataProvider)"]
     end
 
     SPA -- HTTPS/REST --> API
     SPA -- WebSocket --> API
     API -- Prisma --> PG
-    API -. futuro .-> EXT
+    API -. opcional .-> EXT
 ```
 
 - **Frontend**: Angular 20 (standalone components, signals), Angular
@@ -35,8 +35,15 @@ flowchart TB
 - **Backend**: NestJS modular (Clean Architecture por módulo), API REST +
   Swagger + WebSocket gateway (predicciones y simulaciones en tiempo real).
 - **Datos**: PostgreSQL como única fuente de verdad.
-- **Externo**: interfaz `SportsDataProvider` (puerto/adaptador) para futuras
-  integraciones, sin implementación concreta aún.
+- **Externo (Fase 7)**: puerto `SportsDataProvider` (`modules/sync/domain`)
+  con un adaptador concreto `FootballDataProvider` (football-data.org v4,
+  activo cuando `FOOTBALL_DATA_API_KEY` está configurada) y un
+  `NullSportsDataProvider` de respaldo (responde `503` si no hay proveedor
+  configurado, caso por defecto). Endpoints `/admin/sync/*` (solo `ADMIN`)
+  sincronizan competiciones/equipos/partidos hacia la BD vía `externalId`
+  (upsert idempotente); si un partido sincronizado pasa a `FINISHED` con
+  marcador, se recalcula Elo (`EloRatingService.applyMatchResult`, igual que
+  `MatchesService.update`).
 - **Simulaciones Monte Carlo (Fase 4)**: se ejecutan de forma síncrona dentro
   de la API (sin Redis/BullMQ/worker). Esa infraestructura queda reservada
   para una futura migración a ejecución asíncrona si el volumen de
@@ -55,6 +62,7 @@ flowchart TB
 | Logging | nestjs-pino (JSON estructurado) | Bajo overhead, agregable en plataformas cloud |
 | Docs API | @nestjs/swagger (OpenAPI) | Documentación interactiva auto-generada |
 | Cache/Colas | Redis + BullMQ (futuro) | Reservado para una futura migración a ejecución asíncrona de simulaciones Monte Carlo; Fase 4 ejecuta de forma síncrona sin esta infraestructura |
+| Adaptadores externos | @nestjs/axios + axios | Cliente HTTP para `SportsDataProvider`/`FootballDataProvider` (Fase 7) |
 | Contenedores | Docker multi-stage (backend, frontend) | Builds reproducibles y deploy uniforme |
 | CI | GitHub Actions (lint+test+build, ambos apps) | Calidad continua |
 | Hosting | Vercel (frontend) / Railway o Render (backend+DB) | Despliegue independiente por proyecto |
@@ -214,6 +222,5 @@ estructura.
 
 ## Roadmap (fases futuras)
 
-- **Fase 7**: Adaptador de APIs externas (`SportsDataProvider`).
 - **Fase 8**: Hardening (cobertura e2e completa, particionado real, réplicas
   de lectura, configuración de despliegue Vercel/Railway en CI/CD).

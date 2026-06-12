@@ -991,4 +991,101 @@ describe('App (e2e)', () => {
       expect(latest.userId).toBe(adminUserId);
     });
   });
+
+  describe('Sync', () => {
+    const editorEmail = 'e2e-sync-editor@worldcup-analytics.local';
+    const editorPassword = 'EditorSyncE2E123!';
+    let editorToken: string;
+    let competitionId: string;
+
+    beforeAll(async () => {
+      await request(app.getHttpServer())
+        .post(`/${apiPrefix}/admin/users`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          email: editorEmail,
+          name: 'Editor Sync E2E',
+          password: editorPassword,
+          role: 'EDITOR',
+        })
+        .expect(201);
+
+      const loginRes = await request(app.getHttpServer())
+        .post(`/${apiPrefix}/auth/login`)
+        .send({ email: editorEmail, password: editorPassword })
+        .expect(200);
+      editorToken = loginRes.body.accessToken as string;
+
+      const competitionRes = await request(app.getHttpServer())
+        .post(`/${apiPrefix}/competitions`)
+        .send({
+          name: 'Test Sync Cup E2E',
+          type: 'FRIENDLY',
+          season: '2026',
+          startDate: '2026-01-01',
+          endDate: '2026-01-31',
+        })
+        .expect(201);
+      competitionId = competitionRes.body.id as string;
+    });
+
+    it('GET /admin/sync/status -> 401 sin token', () => {
+      return request(app.getHttpServer())
+        .get(`/${apiPrefix}/admin/sync/status`)
+        .expect(401);
+    });
+
+    it('GET /admin/sync/status -> 403 con token de un usuario EDITOR', () => {
+      return request(app.getHttpServer())
+        .get(`/${apiPrefix}/admin/sync/status`)
+        .set('Authorization', `Bearer ${editorToken}`)
+        .expect(403);
+    });
+
+    it('GET /admin/sync/status -> 200 indica que no hay proveedor configurado', () => {
+      return request(app.getHttpServer())
+        .get(`/${apiPrefix}/admin/sync/status`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body).toEqual({ provider: 'none', configured: false });
+        });
+    });
+
+    it('POST /admin/sync/competitions -> 401 sin token', () => {
+      return request(app.getHttpServer())
+        .post(`/${apiPrefix}/admin/sync/competitions`)
+        .expect(401);
+    });
+
+    it('POST /admin/sync/competitions -> 503 sin proveedor configurado', () => {
+      return request(app.getHttpServer())
+        .post(`/${apiPrefix}/admin/sync/competitions`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(503);
+    });
+
+    it('POST /admin/sync/competitions/:id/teams -> 400 si la competicion no esta vinculada', () => {
+      return request(app.getHttpServer())
+        .post(`/${apiPrefix}/admin/sync/competitions/${competitionId}/teams`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(400);
+    });
+
+    it('POST /admin/sync/competitions/:id/matches -> 400 si la competicion no esta vinculada', () => {
+      return request(app.getHttpServer())
+        .post(`/${apiPrefix}/admin/sync/competitions/${competitionId}/matches`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(400);
+    });
+
+    it('POST /admin/sync/competitions/:id/teams -> 404 si la competicion no existe', () => {
+      return request(app.getHttpServer())
+        .post(
+          `/${apiPrefix}/admin/sync/competitions/00000000-0000-0000-0000-000000000000/teams`,
+        )
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(404);
+    });
+  });
 });

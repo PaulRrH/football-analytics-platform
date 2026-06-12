@@ -36,6 +36,7 @@ describe('EloRatingService', () => {
       count: jest.fn(),
       findById: jest.fn(),
       findByName: jest.fn(),
+      findByExternalId: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),

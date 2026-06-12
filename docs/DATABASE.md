@@ -54,6 +54,7 @@ Selecciones nacionales. Base del motor de predicción (`eloRating`).
 | `fifaRankingPoints` | `Float?` | |
 | `eloRating` | `Float` | default `1500` |
 | `foundedYear` | `Int?` | |
+| `externalId` | `String?` | único; ID del equipo en el proveedor externo (Fase 7, sync) |
 | `createdAt` / `updatedAt` | `DateTime` | |
 
 Relaciones: `rankingHistory` (1:N), `competitionEntries` (1:N),
@@ -88,6 +89,7 @@ Agrupa partidos (Mundial, eliminatorias, amistosos, etc.).
 | `season` | `String` | p. ej. `"2026"` |
 | `startDate` / `endDate` | `DateTime` | |
 | `status` | `CompetitionStatus` | default `UPCOMING` |
+| `externalId` | `String?` | único; ID de la competición en el proveedor externo (Fase 7, sync) |
 | `createdAt` / `updatedAt` | `DateTime` | |
 
 Relaciones: `teams` (1:N vía `CompetitionTeam`), `matches` (1:N),
@@ -122,6 +124,7 @@ Partido entre dos selecciones dentro de una competición.
 | `round` | `String?` | p. ej. `"Jornada 1"` |
 | `homeGoals` / `awayGoals` | `Int?` | `null` hasta jugarse |
 | `status` | `MatchStatus` | default `SCHEDULED` |
+| `externalId` | `String?` | único; ID del partido en el proveedor externo (Fase 7, sync) |
 | `createdAt` / `updatedAt` | `DateTime` | |
 
 Relaciones: `statistics` (1:N), `predictions` (1:N). Índices:
@@ -265,3 +268,25 @@ con `email`/`password` tomados de las variables de entorno
 `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` (defaults de desarrollo:
 `admin@worldcup-analytics.local` / `Admin123!`). **Cambiar estos valores en
 producción.**
+
+## Sincronización con proveedores externos (Fase 7)
+
+`Team.externalId`, `Competition.externalId` y `Match.externalId` (nullable,
+únicos) identifican registros importados desde un proveedor externo y
+permiten un upsert idempotente: re-ejecutar la sincronización no duplica
+filas, solo actualiza las existentes. Los registros creados manualmente (sin
+sync) quedan con `externalId = null`.
+
+`POST /admin/sync/competitions/:id/teams` resuelve la confederación de cada
+equipo a partir de `area.name` (país, en inglés) vía
+`mapCountryToConfederation` (`backend/src/common/utils/country-confederation.util.ts`),
+una tabla heurística de ~40 países con `UEFA` como valor por defecto si el
+país no está en la tabla. Es editable luego desde el admin de equipos
+existente (`PATCH /teams/:id`).
+
+Variables de entorno opcionales (`backend/.env`):
+
+| Variable | Default | Descripción |
+|---|---|---|
+| `FOOTBALL_DATA_API_KEY` | `''` (vacío) | Clave de [football-data.org](https://www.football-data.org/) v4. Si está vacía, `/admin/sync/*` usa `NullSportsDataProvider` (responde `503`). |
+| `FOOTBALL_DATA_BASE_URL` | `https://api.football-data.org/v4` | Base URL del proveedor. |

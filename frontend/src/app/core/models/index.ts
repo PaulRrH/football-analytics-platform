@@ -15,5 +15,6 @@ export * from './role.enum';
 export * from './simulation.enum';
 export * from './simulation.model';
 export * from './stats.model';
+export * from './sync.model';
 export * from './team.model';
 export * from './user.model';

@@ -40,6 +40,10 @@ export class PrismaCompetitionRepository implements ICompetitionRepository {
     return this.prisma.competition.findUnique({ where: { id } });
   }
 
+  findByExternalId(externalId: string): Promise<Competition | null> {
+    return this.prisma.competition.findUnique({ where: { externalId } });
+  }
+
   create(data: CreateCompetitionData): Promise<Competition> {
     return this.prisma.competition.create({ data });
   }

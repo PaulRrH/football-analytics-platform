@@ -38,6 +38,7 @@ export interface CreateMatchData {
   homeGoals?: number;
   awayGoals?: number;
   status?: MatchStatus;
+  externalId?: string | null;
 }
 
 export interface UpdateMatchData {
@@ -52,6 +53,7 @@ export interface UpdateMatchData {
   homeGoals?: number;
   awayGoals?: number;
   status?: MatchStatus;
+  externalId?: string | null;
 }
 
 export interface FindAllMatchesParams {
@@ -95,6 +97,7 @@ export interface IMatchRepository {
   findAll(params: FindAllMatchesParams): Promise<MatchListItem[]>;
   count(params: CountMatchesParams): Promise<number>;
   findById(id: string): Promise<MatchWithRelations | null>;
+  findByExternalId(externalId: string): Promise<Match | null>;
   create(data: CreateMatchData): Promise<Match>;
   update(id: string, data: UpdateMatchData): Promise<Match>;
   delete(id: string): Promise<void>;

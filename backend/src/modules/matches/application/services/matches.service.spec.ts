@@ -67,6 +67,7 @@ describe('MatchesService', () => {
       findAll: jest.fn(),
       count: jest.fn(),
       findById: jest.fn(),
+      findByExternalId: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),

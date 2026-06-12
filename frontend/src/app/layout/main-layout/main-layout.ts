@@ -24,6 +24,7 @@ const BASE_NAV_LINKS: NavLink[] = [
 const ADMIN_NAV_LINKS: NavLink[] = [
   { label: 'Usuarios', path: '/admin/users', icon: 'manage_accounts' },
   { label: 'Auditoría', path: '/admin/audit-log', icon: 'history' },
+  { label: 'Sincronización', path: '/admin/sync', icon: 'cloud_sync' },
 ];
 
 @Component({

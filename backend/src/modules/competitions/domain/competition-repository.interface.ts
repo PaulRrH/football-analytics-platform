@@ -13,6 +13,7 @@ export interface CreateCompetitionData {
   startDate: Date;
   endDate: Date;
   status?: CompetitionStatus;
+  externalId?: string | null;
 }
 
 export interface UpdateCompetitionData {
@@ -22,6 +23,7 @@ export interface UpdateCompetitionData {
   startDate?: Date;
   endDate?: Date;
   status?: CompetitionStatus;
+  externalId?: string | null;
 }
 
 export interface FindAllCompetitionsParams {
@@ -76,6 +78,7 @@ export interface ICompetitionRepository {
   findAll(params: FindAllCompetitionsParams): Promise<Competition[]>;
   count(params: CountCompetitionsParams): Promise<number>;
   findById(id: string): Promise<Competition | null>;
+  findByExternalId(externalId: string): Promise<Competition | null>;
   create(data: CreateCompetitionData): Promise<Competition>;
   update(id: string, data: UpdateCompetitionData): Promise<Competition>;
   delete(id: string): Promise<void>;

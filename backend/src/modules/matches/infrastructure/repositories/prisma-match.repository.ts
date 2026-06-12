@@ -39,6 +39,10 @@ export class PrismaMatchRepository implements IMatchRepository {
     });
   }
 
+  findByExternalId(externalId: string): Promise<Match | null> {
+    return this.prisma.match.findUnique({ where: { externalId } });
+  }
+
   create(data: CreateMatchData): Promise<Match> {
     return this.prisma.match.create({ data });
   }

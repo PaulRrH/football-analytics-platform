@@ -1,0 +1,97 @@
+<div class="sync-panel">
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>Sincronización de datos externos</mat-card-title>
+      <mat-card-subtitle>
+        Importa competiciones, equipos y partidos desde un proveedor de datos externo
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      @if (errorMessage()) {
+        <p class="error-message">{{ errorMessage() }}</p>
+      }
+
+      @if (loading()) {
+        <div class="sync-panel__loading">
+          <mat-spinner diameter="40" />
+        </div>
+      } @else if (status(); as currentStatus) {
+        <p class="sync-panel__status">
+          Proveedor activo: <strong>{{ currentStatus.provider }}</strong>
+          <span
+            class="sync-panel__badge"
+            [class.sync-panel__badge--ok]="currentStatus.configured"
+            [class.sync-panel__badge--off]="!currentStatus.configured"
+          >
+            {{ currentStatus.configured ? 'Configurado' : 'No configurado' }}
+          </span>
+        </p>
+
+        @if (!currentStatus.configured) {
+          <p class="sync-panel__hint">
+            Define la variable de entorno <code>FOOTBALL_DATA_API_KEY</code> en el backend para
+            activar la sincronización con un proveedor externo real.
+          </p>
+        }
+
+        <div class="sync-panel__actions">
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            [disabled]="!currentStatus.configured || syncingCompetitions()"
+            (click)="syncCompetitions()"
+          >
+            @if (syncingCompetitions()) {
+              <mat-spinner diameter="18" />
+            } @else {
+              Sincronizar competiciones
+            }
+          </button>
+        </div>
+
+        <mat-form-field class="sync-panel__select">
+          <mat-label>Competición</mat-label>
+          <mat-select [value]="selectedCompetitionId()" (selectionChange)="selectedCompetitionId.set($event.value)">
+            @for (competition of competitions(); track competition.id) {
+              <mat-option [value]="competition.id">
+                {{ competition.name }} ({{ competition.season }})
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <div class="sync-panel__actions">
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            [disabled]="!currentStatus.configured || !selectedCompetitionId() || syncingTeams()"
+            (click)="syncTeams()"
+          >
+            @if (syncingTeams()) {
+              <mat-spinner diameter="18" />
+            } @else {
+              Sincronizar equipos
+            }
+          </button>
+
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            [disabled]="!currentStatus.configured || !selectedCompetitionId() || syncingMatches()"
+            (click)="syncMatches()"
+          >
+            @if (syncingMatches()) {
+              <mat-spinner diameter="18" />
+            } @else {
+              Sincronizar partidos
+            }
+          </button>
+        </div>
+      }
+    </mat-card-content>
+  </mat-card>
+</div>

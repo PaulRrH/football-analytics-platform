@@ -35,6 +35,10 @@ export class PrismaTeamRepository implements ITeamRepository {
     return this.prisma.team.findUnique({ where: { name } });
   }
 
+  findByExternalId(externalId: string): Promise<Team | null> {
+    return this.prisma.team.findUnique({ where: { externalId } });
+  }
+
   create(data: CreateTeamData): Promise<Team> {
     return this.prisma.team.create({ data });
   }

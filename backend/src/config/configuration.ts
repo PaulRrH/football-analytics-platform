@@ -12,6 +12,12 @@ export interface AppConfig {
     secret: string;
     expiresIn: string;
   };
+  externalApi: {
+    footballData: {
+      apiKey: string;
+      baseUrl: string;
+    };
+  };
 }
 
 export default (): AppConfig => ({
@@ -27,5 +33,13 @@ export default (): AppConfig => ({
   jwt: {
     secret: process.env.JWT_SECRET ?? '',
     expiresIn: process.env.JWT_EXPIRES_IN ?? '1d',
+  },
+  externalApi: {
+    footballData: {
+      apiKey: process.env.FOOTBALL_DATA_API_KEY ?? '',
+      baseUrl:
+        process.env.FOOTBALL_DATA_BASE_URL ??
+        'https://api.football-data.org/v4',
+    },
   },
 });

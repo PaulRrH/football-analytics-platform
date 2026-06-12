@@ -1,0 +1,50 @@
+.sync-panel {
+  &__loading {
+    display: flex;
+    justify-content: center;
+    padding: 2rem;
+  }
+
+  &__status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  &__badge {
+    padding: 0.125rem 0.5rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+
+    &--ok {
+      background-color: #d4edda;
+      color: #155724;
+    }
+
+    &--off {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+  }
+
+  &__hint {
+    color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+  }
+
+  &__select {
+    display: block;
+    max-width: 24rem;
+    margin: 1rem 0;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 0.75rem;
+    margin: 1rem 0;
+  }
+}
+
+.error-message {
+  color: var(--mat-sys-error, #b3261e);
+}

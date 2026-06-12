@@ -45,6 +45,12 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'admin/sync',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./features/admin/sync/sync-panel/sync-panel').then((m) => m.SyncPanel),
+      },
+      {
         path: 'teams',
         children: [
           {

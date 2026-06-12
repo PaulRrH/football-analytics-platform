@@ -12,6 +12,7 @@ export interface CreateTeamData {
   fifaRankingPoints?: number;
   eloRating?: number;
   foundedYear?: number;
+  externalId?: string | null;
 }
 
 export interface UpdateTeamData {
@@ -24,6 +25,7 @@ export interface UpdateTeamData {
   fifaRankingPoints?: number;
   eloRating?: number;
   foundedYear?: number;
+  externalId?: string | null;
 }
 
 export interface FindAllTeamsParams {
@@ -54,6 +56,7 @@ export interface ITeamRepository {
   count(params: CountTeamsParams): Promise<number>;
   findById(id: string): Promise<Team | null>;
   findByName(name: string): Promise<Team | null>;
+  findByExternalId(externalId: string): Promise<Team | null>;
   create(data: CreateTeamData): Promise<Team>;
   update(id: string, data: UpdateTeamData): Promise<Team>;
   delete(id: string): Promise<void>;

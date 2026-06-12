@@ -19,6 +19,7 @@ import { PredictionsModule } from './modules/predictions/predictions.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
 import { SimulationsModule } from './modules/simulations/simulations.module';
 import { StatsModule } from './modules/stats/stats.module';
+import { SyncModule } from './modules/sync/sync.module';
 import { TeamsModule } from './modules/teams/teams.module';
 import { UsersModule } from './modules/users/users.module';
 
@@ -60,6 +61,7 @@ import { UsersModule } from './modules/users/users.module';
     UsersModule,
     AuthModule,
     AuditModule,
+    SyncModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

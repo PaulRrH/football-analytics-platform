@@ -263,3 +263,37 @@ mutación fue anónima, es decir, sin token), `method`, `path`, `entityType`
 p. ej. en `POST`), `statusCode` y `createdAt`. Se registra automáticamente vía
 un interceptor global (`AuditInterceptor`) para todas las mutaciones excepto
 `/auth/*` y `/admin/*`.
+
+## Fase 7 (implementados)
+
+### Admin - Sync (`/api/v1/admin/sync`)
+
+Todos los endpoints requieren `Authorization: Bearer <token>` con rol
+`ADMIN` (`401` sin token, `403` con rol `EDITOR`).
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/admin/sync/status` | Informa el proveedor de datos externos activo y si está configurado. |
+| POST | `/admin/sync/competitions` | Trae competiciones desde el proveedor y las crea/actualiza por `externalId`. |
+| POST | `/admin/sync/competitions/:id/teams` | Trae los equipos de una competición ya vinculada (con `externalId`), los crea/actualiza por `externalId` y los une a la competición. |
+| POST | `/admin/sync/competitions/:id/matches` | Trae los partidos de una competición ya vinculada, los crea/actualiza por `externalId` y recalcula Elo si un partido pasa a `FINISHED` con marcador. |
+
+`GET /admin/sync/status` devuelve `ProviderStatusResponseDto`: `provider`
+(p. ej. `'football-data.org'` o `'none'`) y `configured` (`boolean`).
+
+Los tres `POST` devuelven `SyncResultResponseDto`: `created`, `updated`,
+`skipped` (cantidad de registros creados/actualizados/omitidos en esa
+sincronización).
+
+`POST /admin/sync/competitions/:id/teams` y `.../matches` devuelven:
+- `404 Not Found` si la competición `:id` no existe.
+- `400 Bad Request` ("Esta competición no está vinculada a un proveedor
+  externo. Ejecuta antes 'Sincronizar competiciones'.") si la competición
+  existe pero no tiene `externalId` (no fue creada/vinculada por
+  `POST /admin/sync/competitions`).
+
+Sin `FOOTBALL_DATA_API_KEY` configurada (caso por defecto, incluido CI), el
+proveedor activo es `NullSportsDataProvider`: `GET /admin/sync/status`
+devuelve `{ provider: 'none', configured: false }` y los tres `POST`
+devuelven `503 Service Unavailable` ("Proveedor de datos externos no
+configurado. Define FOOTBALL_DATA_API_KEY.").

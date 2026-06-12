@@ -90,6 +90,7 @@ model Team {
   fifaRankingPoints Float?
   eloRating         Float         @default(1500)
   foundedYear       Int?
+  externalId        String?       @unique
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
@@ -123,15 +124,16 @@ model TeamRankingHistory {
 // ---------------------------------------------------------------------------
 
 model Competition {
-  id        String            @id @default(uuid())
-  name      String
-  type      CompetitionType
-  season    String
-  startDate DateTime
-  endDate   DateTime
-  status    CompetitionStatus @default(UPCOMING)
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
+  id         String            @id @default(uuid())
+  name       String
+  type       CompetitionType
+  season     String
+  startDate  DateTime
+  endDate    DateTime
+  status     CompetitionStatus @default(UPCOMING)
+  externalId String?           @unique
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
 
   teams       CompetitionTeam[]
   matches     Match[]
@@ -168,6 +170,7 @@ model Match {
   homeGoals     Int?
   awayGoals     Int?
   status        MatchStatus @default(SCHEDULED)
+  externalId    String?     @unique
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
