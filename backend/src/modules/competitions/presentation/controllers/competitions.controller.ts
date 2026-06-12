@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -99,6 +101,7 @@ export class CompetitionsController {
   }
 
   @Delete(':id/teams/:teamId')
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Quitar un equipo de la competicion' })
   removeTeam(
     @Param('id', ParseUUIDPipe) id: string,
