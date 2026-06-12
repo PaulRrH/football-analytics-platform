@@ -95,9 +95,9 @@ modules/<modulo>/
 - **Controladores**: solo mapean rutas HTTP a servicios. Todos los endpoints
   son públicos, sin autenticación ni autorización.
 
-Los módulos `teams` y `matches` son la implementación de referencia completa
-de este patrón y sirven de plantilla para los módulos de fases futuras
-(`competitions`, `predictions`, `simulations`, etc.).
+Los módulos `teams`, `matches` y `competitions` son la implementación de
+referencia completa de este patrón y sirven de plantilla para los módulos de
+fases futuras (`predictions`, `simulations`, etc.).
 
 ## 4. Transversal (cross-cutting)
 
@@ -130,8 +130,9 @@ de este patrón y sirven de plantilla para los módulos de fases futuras
 - **Layout**: `MainLayout` (toolbar + sidenav Material) para toda la
   aplicación.
 - **Features**: `dashboard` (ranking Elo vía ApexCharts), `teams`,
-  `matches` — cada una con sus propios componentes de lista/detalle/formulario
-  y un servicio HTTP tipado contra los DTOs del backend.
+  `competitions`, `matches` — cada una con sus propios componentes de
+  lista/detalle/formulario y un servicio HTTP tipado contra los DTOs del
+  backend.
 
 ## 6. Infraestructura, Docker, CI/CD
 
@@ -167,9 +168,9 @@ de este patrón y sirven de plantilla para los módulos de fases futuras
 
 ## Roadmap (fases futuras)
 
-- **Fase 2**: módulo `competitions` (CRUD + standings), motor estadístico
-  (`/stats/teams/:id`, head-to-head, tendencias), carga de datos históricos
-  reales.
+- **Fase 2**: tabla de posiciones (`standings`) del módulo `competitions`,
+  motor estadístico (`/stats/teams/:id`, head-to-head, tendencias), carga de
+  datos históricos reales.
 - **Fase 3**: motor de predicción Elo+Poisson, módulo `predictions`,
   recálculo de Elo al finalizar partidos (domain event). Ver
   [PREDICTION_ENGINE.md](PREDICTION_ENGINE.md).

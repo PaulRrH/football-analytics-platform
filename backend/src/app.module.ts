@@ -8,6 +8,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import configuration, { AppConfig } from './config/configuration';
 import { validateEnv } from './config/env.validation';
 import { PrismaModule } from './infrastructure/prisma/prisma.module';
+import { CompetitionsModule } from './modules/competitions/competitions.module';
 import { HealthModule } from './modules/health/health.module';
 import { MatchesModule } from './modules/matches/matches.module';
 import { TeamsModule } from './modules/teams/teams.module';
@@ -38,6 +39,7 @@ import { TeamsModule } from './modules/teams/teams.module';
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 100 }]),
     PrismaModule,
     TeamsModule,
+    CompetitionsModule,
     MatchesModule,
     HealthModule,
   ],

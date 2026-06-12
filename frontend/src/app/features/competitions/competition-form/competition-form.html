@@ -1,0 +1,102 @@
+<div class="competition-form">
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>{{ isEdit() ? 'Editar competición' : 'Nueva competición' }}</mat-card-title>
+      <mat-card-subtitle>
+        {{ isEdit() ? 'Actualiza los datos de la competición' : 'Registra una nueva competición' }}
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      @if (loading()) {
+        <div class="competition-form__loading">
+          <mat-spinner diameter="40" />
+        </div>
+      } @else {
+        @if (errorMessage()) {
+          <p class="error-message">{{ errorMessage() }}</p>
+        }
+
+        <form class="competition-form__form" [formGroup]="form" (ngSubmit)="submit()">
+          <mat-form-field appearance="outline" class="competition-form__field--full">
+            <mat-label>Nombre</mat-label>
+            <input matInput formControlName="name" placeholder="FIFA World Cup 2026" />
+            @if (form.controls.name.hasError('required')) {
+              <mat-error>El nombre es obligatorio.</mat-error>
+            }
+            @if (form.controls.name.hasError('minlength')) {
+              <mat-error>El nombre debe tener al menos 2 caracteres.</mat-error>
+            }
+          </mat-form-field>
+
+          <div class="competition-form__row">
+            <mat-form-field appearance="outline" class="competition-form__field--grow">
+              <mat-label>Tipo</mat-label>
+              <mat-select formControlName="type">
+                @for (type of types; track type) {
+                  <mat-option [value]="type">{{ type }}</mat-option>
+                }
+              </mat-select>
+              @if (form.controls.type.hasError('required')) {
+                <mat-error>Selecciona el tipo de competición.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="competition-form__field--grow">
+              <mat-label>Temporada</mat-label>
+              <input matInput formControlName="season" placeholder="2026" />
+              @if (form.controls.season.hasError('required')) {
+                <mat-error>La temporada es obligatoria.</mat-error>
+              }
+              @if (form.controls.season.hasError('minlength')) {
+                <mat-error>La temporada debe tener al menos 2 caracteres.</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <div class="competition-form__row">
+            <mat-form-field appearance="outline" class="competition-form__field--grow">
+              <mat-label>Fecha de inicio</mat-label>
+              <input matInput type="date" formControlName="startDate" />
+              @if (form.controls.startDate.hasError('required')) {
+                <mat-error>La fecha de inicio es obligatoria.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="competition-form__field--grow">
+              <mat-label>Fecha de fin</mat-label>
+              <input matInput type="date" formControlName="endDate" />
+              @if (form.controls.endDate.hasError('required')) {
+                <mat-error>La fecha de fin es obligatoria.</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          @if (form.hasError('invalidDateRange')) {
+            <p class="error-message">La fecha de inicio debe ser anterior a la fecha de fin.</p>
+          }
+
+          <mat-form-field appearance="outline" class="competition-form__field--grow">
+            <mat-label>Estado</mat-label>
+            <mat-select formControlName="status">
+              @for (status of statuses; track status) {
+                <mat-option [value]="status">{{ status }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <div class="competition-form__actions">
+            <a mat-button routerLink="/competitions">Cancelar</a>
+            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="20" />
+              } @else {
+                {{ isEdit() ? 'Guardar cambios' : 'Crear competición' }}
+              }
+            </button>
+          </div>
+        </form>
+      }
+    </mat-card-content>
+  </mat-card>
+</div>

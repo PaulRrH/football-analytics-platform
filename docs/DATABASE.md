@@ -2,8 +2,8 @@
 
 Esquema completo definido en [`backend/prisma/schema.prisma`](../backend/prisma/schema.prisma).
 Incluye todas las entidades del dominio desde la Fase 1, aunque los módulos
-NestJS de `competitions`, `predictions` y `simulations` se implementen en
-fases posteriores.
+NestJS de `predictions` y `simulations` se implementen en fases
+posteriores.
 
 ## Diagrama Entidad-Relación
 
@@ -76,8 +76,7 @@ dashboard.
 
 ### Competition (`competitions`)
 
-Agrupa partidos (Mundial, eliminatorias, amistosos, etc.). Módulo NestJS en
-Fase 2.
+Agrupa partidos (Mundial, eliminatorias, amistosos, etc.).
 
 | Campo | Tipo | Notas |
 |---|---|---|

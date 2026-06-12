@@ -82,4 +82,31 @@ describe('App (e2e)', () => {
         expect(res.body.id).toBeDefined();
       });
   });
+
+  it('GET /competitions -> 200 publico, paginado', () => {
+    return request(app.getHttpServer())
+      .get(`/${apiPrefix}/competitions`)
+      .expect(200)
+      .expect((res) => {
+        expect(Array.isArray(res.body.data)).toBe(true);
+        expect(res.body.meta).toHaveProperty('total');
+      });
+  });
+
+  it('POST /competitions -> 201 crea una competicion', () => {
+    return request(app.getHttpServer())
+      .post(`/${apiPrefix}/competitions`)
+      .send({
+        name: 'Test Cup E2E',
+        type: 'FRIENDLY',
+        season: '2026',
+        startDate: '2026-01-01',
+        endDate: '2026-01-31',
+      })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.name).toBe('Test Cup E2E');
+        expect(res.body.id).toBeDefined();
+      });
+  });
 });

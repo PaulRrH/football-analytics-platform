@@ -25,6 +25,16 @@ Convenciones:
 | PATCH | `/teams/:id` | Actualizar equipo (re-valida unicidad de nombre). |
 | DELETE | `/teams/:id` | Eliminar equipo. |
 
+### Competitions (`/api/v1/competitions`)
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/competitions` | Listado paginado. Filtros: `type`, `status`, `season`, `search` (nombre, case-insensitive). |
+| GET | `/competitions/:id` | Detalle de una competición. |
+| POST | `/competitions` | Crear competición (valida `startDate < endDate`). |
+| PATCH | `/competitions/:id` | Actualizar competición (re-valida el rango de fechas si cambian). |
+| DELETE | `/competitions/:id` | Eliminar competición. |
+
 ### Matches (`/api/v1/matches`)
 
 | Método | Ruta | Descripción |
@@ -46,7 +56,7 @@ Convenciones:
 
 | Fase | Endpoints | Descripción |
 |---|---|---|
-| 2 | `GET/POST/PATCH/DELETE /competitions[/:id]`, `GET /competitions/:id/standings` | CRUD de competiciones y tabla de posiciones |
+| 2 | `GET /competitions/:id/standings` | Tabla de posiciones de una competición |
 | 2 | `GET /stats/teams/:id`, `GET /stats/head-to-head?teamA=&teamB=` | Motor estadístico: forma reciente, enfrentamientos directos |
 | 3 | `GET /predictions/matches/:id`, `POST /predictions/matches/:id/generate` | Predicción Elo + Poisson para un partido |
 | 4 | `POST /simulations`, `GET /simulations/:id`, `GET /simulations/:id/results[/teams/:teamId]` | Simulación Monte Carlo de torneo (async, BullMQ) |

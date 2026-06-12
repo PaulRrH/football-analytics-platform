@@ -102,8 +102,8 @@ cd frontend && npm run lint && npm run build && npm run test
 ## Roadmap
 
 Esta primera fase entrega la arquitectura completa, el esquema de base de
-datos íntegro y dos módulos de referencia end-to-end (`teams` y `matches`)
-que sirven de plantilla para el resto de módulos. Las fases siguientes
-(competiciones, motor estadístico, motor de predicción, simulaciones Monte
-Carlo, dashboard en tiempo real y panel de administración) están descritas en
+datos íntegro y tres módulos de referencia end-to-end (`teams`, `matches` y
+`competitions`) que sirven de plantilla para el resto de módulos. Las fases
+siguientes (motor estadístico, motor de predicción, simulaciones Monte Carlo,
+dashboard en tiempo real y panel de administración) están descritas en
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#roadmap-fases-futuras).

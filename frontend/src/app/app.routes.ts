@@ -36,6 +36,32 @@ export const routes: Routes = [
         ],
       },
       {
+        path: 'competitions',
+        children: [
+          {
+            path: '',
+            loadComponent: () =>
+              import('./features/competitions/competition-list/competition-list').then(
+                (m) => m.CompetitionList,
+              ),
+          },
+          {
+            path: 'new',
+            loadComponent: () =>
+              import('./features/competitions/competition-form/competition-form').then(
+                (m) => m.CompetitionForm,
+              ),
+          },
+          {
+            path: ':id/edit',
+            loadComponent: () =>
+              import('./features/competitions/competition-form/competition-form').then(
+                (m) => m.CompetitionForm,
+              ),
+          },
+        ],
+      },
+      {
         path: 'matches',
         children: [
           {

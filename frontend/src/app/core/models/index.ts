@@ -1,4 +1,6 @@
 export * from './api-error.model';
+export * from './competition.enum';
+export * from './competition.model';
 export * from './confederation.enum';
 export * from './match.enum';
 export * from './match.model';

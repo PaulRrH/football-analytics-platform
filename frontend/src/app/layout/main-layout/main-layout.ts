@@ -15,6 +15,7 @@ interface NavLink {
 const NAV_LINKS: NavLink[] = [
   { label: 'Dashboard', path: '/dashboard', icon: 'dashboard' },
   { label: 'Equipos', path: '/teams', icon: 'groups' },
+  { label: 'Competiciones', path: '/competitions', icon: 'emoji_events' },
   { label: 'Partidos', path: '/matches', icon: 'sports_soccer' },
 ];
 

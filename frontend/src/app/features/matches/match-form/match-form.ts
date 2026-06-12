@@ -9,13 +9,15 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { finalize } from 'rxjs';
-import { MatchStage, MatchStatus, Team } from '../../../core/models';
+import { Competition, MatchStage, MatchStatus, Team } from '../../../core/models';
+import { CompetitionsService } from '../../../core/services/competitions.service';
 import { MatchesService } from '../../../core/services/matches.service';
 import { TeamsService } from '../../../core/services/teams.service';
 import { differentFieldsValidator } from '../../../core/utils/validators';
 import { resolveErrorMessage } from '../../../core/utils/http-error.util';
 
 const TEAMS_PAGE_SIZE = 100;
+const COMPETITIONS_PAGE_SIZE = 100;
 
 @Component({
   selector: 'app-match-form',
@@ -37,12 +39,14 @@ export class MatchForm implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly matchesService = inject(MatchesService);
   private readonly teamsService = inject(TeamsService);
+  private readonly competitionsService = inject(CompetitionsService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
   readonly stages = Object.values(MatchStage);
   readonly statuses = Object.values(MatchStatus);
   readonly teams = signal<Team[]>([]);
+  readonly competitions = signal<Competition[]>([]);
 
   readonly matchId = signal<string | null>(null);
   readonly loading = signal(false);
@@ -73,6 +77,13 @@ export class MatchForm implements OnInit {
       next: (res) => this.teams.set(res.data),
       error: (err: unknown) => {
         this.errorMessage.set(resolveErrorMessage(err, 'No se pudieron cargar los equipos.'));
+      },
+    });
+
+    this.competitionsService.findAll({ limit: COMPETITIONS_PAGE_SIZE }).subscribe({
+      next: (res) => this.competitions.set(res.data),
+      error: (err: unknown) => {
+        this.errorMessage.set(resolveErrorMessage(err, 'No se pudieron cargar las competiciones.'));
       },
     });
 

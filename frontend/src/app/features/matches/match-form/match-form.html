@@ -19,10 +19,16 @@
 
         <form class="match-form__form" [formGroup]="form" (ngSubmit)="submit()">
           <mat-form-field appearance="outline" class="match-form__field--full">
-            <mat-label>ID de la competición</mat-label>
-            <input matInput formControlName="competitionId" placeholder="UUID de la competición" />
+            <mat-label>Competición</mat-label>
+            <mat-select formControlName="competitionId">
+              @for (competition of competitions(); track competition.id) {
+                <mat-option [value]="competition.id">
+                  {{ competition.name }} ({{ competition.season }})
+                </mat-option>
+              }
+            </mat-select>
             @if (form.controls.competitionId.hasError('required')) {
-              <mat-error>El ID de la competición es obligatorio.</mat-error>
+              <mat-error>Selecciona la competición.</mat-error>
             }
           </mat-form-field>
 
