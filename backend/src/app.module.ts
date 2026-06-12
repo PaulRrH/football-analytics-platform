@@ -11,6 +11,7 @@ import { PrismaModule } from './infrastructure/prisma/prisma.module';
 import { CompetitionsModule } from './modules/competitions/competitions.module';
 import { HealthModule } from './modules/health/health.module';
 import { MatchesModule } from './modules/matches/matches.module';
+import { StatsModule } from './modules/stats/stats.module';
 import { TeamsModule } from './modules/teams/teams.module';
 
 @Module({
@@ -41,6 +42,7 @@ import { TeamsModule } from './modules/teams/teams.module';
     TeamsModule,
     CompetitionsModule,
     MatchesModule,
+    StatsModule,
     HealthModule,
   ],
   providers: [

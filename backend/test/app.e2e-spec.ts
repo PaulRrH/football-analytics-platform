@@ -131,4 +131,63 @@ describe('App (e2e)', () => {
         expect(Array.isArray(res.body)).toBe(true);
       });
   });
+
+  describe('Stats', () => {
+    let teamAId: string;
+    let teamBId: string;
+
+    beforeAll(async () => {
+      const teamARes = await request(app.getHttpServer())
+        .post(`/${apiPrefix}/teams`)
+        .send({
+          name: 'Test Stats FC A',
+          shortName: 'TSA',
+          country: 'Test',
+          confederation: 'UEFA',
+        })
+        .expect(201);
+      teamAId = teamARes.body.id as string;
+
+      const teamBRes = await request(app.getHttpServer())
+        .post(`/${apiPrefix}/teams`)
+        .send({
+          name: 'Test Stats FC B',
+          shortName: 'TSB',
+          country: 'Test',
+          confederation: 'UEFA',
+        })
+        .expect(201);
+      teamBId = teamBRes.body.id as string;
+    });
+
+    it('GET /stats/teams/:id -> 200 forma reciente de un equipo', () => {
+      return request(app.getHttpServer())
+        .get(`/${apiPrefix}/stats/teams/${teamAId}`)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.team.id).toBe(teamAId);
+          expect(Array.isArray(res.body.recentMatches)).toBe(true);
+          expect(Array.isArray(res.body.form)).toBe(true);
+        });
+    });
+
+    it('GET /stats/head-to-head -> 200 historial entre dos equipos', () => {
+      return request(app.getHttpServer())
+        .get(`/${apiPrefix}/stats/head-to-head`)
+        .query({ teamA: teamAId, teamB: teamBId })
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.teamA.id).toBe(teamAId);
+          expect(res.body.teamB.id).toBe(teamBId);
+          expect(Array.isArray(res.body.matches)).toBe(true);
+        });
+    });
+
+    it('GET /stats/head-to-head -> 400 si los equipos son el mismo', () => {
+      return request(app.getHttpServer())
+        .get(`/${apiPrefix}/stats/head-to-head`)
+        .query({ teamA: teamAId, teamB: teamAId })
+        .expect(400);
+    });
+  });
 });

@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -13,13 +14,15 @@ import {
   ChartComponent,
 } from 'ng-apexcharts';
 import { finalize, forkJoin } from 'rxjs';
-import { Team, TeamRankingHistoryEntry } from '../../../core/models';
+import { Team, TeamForm, TeamRankingHistoryEntry } from '../../../core/models';
+import { StatsService } from '../../../core/services/stats.service';
 import { TeamsService } from '../../../core/services/teams.service';
 import { resolveErrorMessage } from '../../../core/utils/http-error.util';
 
 @Component({
   selector: 'app-team-detail',
   imports: [
+    DatePipe,
     RouterLink,
     MatButtonModule,
     MatCardModule,
@@ -33,11 +36,13 @@ import { resolveErrorMessage } from '../../../core/utils/http-error.util';
 export class TeamDetail implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly teamsService = inject(TeamsService);
+  private readonly statsService = inject(StatsService);
 
   readonly loading = signal(true);
   readonly errorMessage = signal<string | null>(null);
   readonly team = signal<Team | null>(null);
   readonly rankingHistory = signal<TeamRankingHistoryEntry[]>([]);
+  readonly teamForm = signal<TeamForm | null>(null);
 
   readonly hasHistory = computed(() => this.rankingHistory().length > 0);
 
@@ -69,12 +74,14 @@ export class TeamDetail implements OnInit {
     forkJoin({
       team: this.teamsService.findOne(id),
       history: this.teamsService.getRankingHistory(id),
+      form: this.statsService.getTeamForm(id),
     })
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
-        next: ({ team, history }) => {
+        next: ({ team, history, form }) => {
           this.team.set(team);
           this.rankingHistory.set(history);
+          this.teamForm.set(form);
         },
         error: (err: unknown) => {
           this.errorMessage.set(resolveErrorMessage(err, 'No se pudo cargar el equipo.'));

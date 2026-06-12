@@ -68,11 +68,34 @@ Convenciones:
 |---|---|---|
 | GET | `/health` | Estado de la API y conectividad con PostgreSQL. |
 
-## Roadmap (no implementado en Fase 1)
+## Fase 2 (implementados)
+
+### Stats (`/api/v1/stats`)
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/stats/teams/:id` | Forma reciente de un equipo (últimos `limit` partidos `FINISHED`, 1-20, default 5). |
+| GET | `/stats/head-to-head?teamA=&teamB=` | Historial de enfrentamientos directos `FINISHED` entre dos equipos. |
+
+`GET /stats/teams/:id` devuelve `TeamFormResponseDto`: datos del equipo
+(`team`), agregados de los últimos `limit` partidos finalizados
+(`matchesPlayed`, `wins`, `drawn`, `losses`, `goalsFor`, `goalsAgainst`,
+`points`), `form` (racha de resultados `W`/`D`/`L` en orden cronológico, del
+más antiguo al más reciente) y `recentMatches` (detalle de cada partido, del
+más reciente al más antiguo, con `opponent`, `isHome`, `goalsFor`,
+`goalsAgainst` y `result`).
+
+`GET /stats/head-to-head?teamA=&teamB=` devuelve `HeadToHeadResponseDto`:
+datos de ambos equipos (`teamA`, `teamB`), agregados del historial
+(`totalMatches`, `teamAWins`, `teamBWins`, `draws`, `teamAGoals`,
+`teamBGoals`) y `matches` (detalle de cada partido finalizado entre ambos,
+del más reciente al más antiguo). Responde `400 Bad Request` si `teamA` y
+`teamB` son el mismo equipo.
+
+## Roadmap (no implementado en Fase 2)
 
 | Fase | Endpoints | Descripción |
 |---|---|---|
-| 2 | `GET /stats/teams/:id`, `GET /stats/head-to-head?teamA=&teamB=` | Motor estadístico: forma reciente, enfrentamientos directos |
 | 3 | `GET /predictions/matches/:id`, `POST /predictions/matches/:id/generate` | Predicción Elo + Poisson para un partido |
 | 4 | `POST /simulations`, `GET /simulations/:id`, `GET /simulations/:id/results[/teams/:teamId]` | Simulación Monte Carlo de torneo (async, BullMQ) |
 | 5 | `GET /dashboard/summary`, `GET /dashboard/rankings`, WS `/ws` (`prediction.updated`, `simulation.progress`) | Dashboard agregado y eventos en tiempo real |

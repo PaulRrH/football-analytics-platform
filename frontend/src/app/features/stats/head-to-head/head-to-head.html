@@ -1,0 +1,89 @@
+<div class="head-to-head">
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>Head to Head</mat-card-title>
+      <mat-card-subtitle>Historial de enfrentamientos directos entre dos equipos</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <div class="head-to-head__selectors">
+        <mat-form-field appearance="outline" class="head-to-head__field">
+          <mat-label>Equipo A</mat-label>
+          <mat-select [value]="teamAId()" (selectionChange)="onTeamAChange($event.value)">
+            @for (team of teams(); track team.id) {
+              <mat-option [value]="team.id">{{ team.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="head-to-head__field">
+          <mat-label>Equipo B</mat-label>
+          <mat-select [value]="teamBId()" (selectionChange)="onTeamBChange($event.value)">
+            @for (team of teams(); track team.id) {
+              <mat-option [value]="team.id">{{ team.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      @if (loading()) {
+        <div class="head-to-head__loading">
+          <mat-spinner diameter="40" />
+        </div>
+      } @else if (errorMessage()) {
+        <p class="error-message">{{ errorMessage() }}</p>
+      } @else if (result(); as r) {
+        <dl class="head-to-head__summary">
+          <div>
+            <dt>{{ r.teamA.name }}</dt>
+            <dd>{{ r.teamAWins }} victorias</dd>
+          </div>
+          <div>
+            <dt>Empates</dt>
+            <dd>{{ r.draws }}</dd>
+          </div>
+          <div>
+            <dt>{{ r.teamB.name }}</dt>
+            <dd>{{ r.teamBWins }} victorias</dd>
+          </div>
+          <div>
+            <dt>Goles</dt>
+            <dd>{{ r.teamAGoals }} - {{ r.teamBGoals }}</dd>
+          </div>
+          <div>
+            <dt>Partidos jugados</dt>
+            <dd>{{ r.totalMatches }}</dd>
+          </div>
+        </dl>
+
+        @if (r.matches.length === 0) {
+          <p class="head-to-head__empty">No hay partidos finalizados entre estos equipos.</p>
+        } @else {
+          <table mat-table [dataSource]="r.matches" class="head-to-head__table">
+            <ng-container matColumnDef="date">
+              <th mat-header-cell *matHeaderCellDef>Fecha</th>
+              <td mat-cell *matCellDef="let match">{{ match.matchDate | date: 'mediumDate' }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="competition">
+              <th mat-header-cell *matHeaderCellDef>Competición</th>
+              <td mat-cell *matCellDef="let match">{{ match.competitionName }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="result">
+              <th mat-header-cell *matHeaderCellDef>Resultado</th>
+              <td mat-cell *matCellDef="let match">
+                {{ match.homeTeam.name }} {{ match.homeGoals }} - {{ match.awayGoals }} {{ match.awayTeam.name }}
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+          </table>
+        }
+      } @else {
+        <p class="head-to-head__empty">Selecciona dos equipos para comparar.</p>
+      }
+    </mat-card-content>
+  </mat-card>
+</div>

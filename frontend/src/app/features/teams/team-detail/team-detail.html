@@ -72,5 +72,79 @@
         }
       </mat-card-content>
     </mat-card>
+
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Forma reciente</mat-card-title>
+        <mat-card-subtitle>Últimos partidos finalizados</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        @if (teamForm(); as form) {
+          @if (form.matchesPlayed === 0) {
+            <p class="team-detail__empty">Sin partidos finalizados recientes.</p>
+          } @else {
+            <dl class="team-detail__stats">
+              <div>
+                <dt>PJ</dt>
+                <dd>{{ form.matchesPlayed }}</dd>
+              </div>
+              <div>
+                <dt>G</dt>
+                <dd>{{ form.wins }}</dd>
+              </div>
+              <div>
+                <dt>E</dt>
+                <dd>{{ form.draws }}</dd>
+              </div>
+              <div>
+                <dt>P</dt>
+                <dd>{{ form.losses }}</dd>
+              </div>
+              <div>
+                <dt>GF</dt>
+                <dd>{{ form.goalsFor }}</dd>
+              </div>
+              <div>
+                <dt>GC</dt>
+                <dd>{{ form.goalsAgainst }}</dd>
+              </div>
+              <div>
+                <dt>Pts</dt>
+                <dd>{{ form.points }}</dd>
+              </div>
+            </dl>
+
+            <div class="team-detail__form-badges">
+              @for (r of form.form; track $index) {
+                <span
+                  class="team-detail__form-badge"
+                  [class.team-detail__form-badge--win]="r === 'W'"
+                  [class.team-detail__form-badge--draw]="r === 'D'"
+                  [class.team-detail__form-badge--loss]="r === 'L'"
+                >{{ r }}</span>
+              }
+            </div>
+
+            <ul class="team-detail__recent-matches">
+              @for (m of form.recentMatches; track m.id) {
+                <li>
+                  <span class="team-detail__recent-matches-date">{{ m.matchDate | date: 'mediumDate' }}</span>
+                  <span class="team-detail__recent-matches-opponent">
+                    {{ m.isHome ? 'vs' : '@' }} {{ m.opponent.name }}
+                  </span>
+                  <span class="team-detail__recent-matches-score">{{ m.goalsFor }} - {{ m.goalsAgainst }}</span>
+                  <span
+                    class="team-detail__form-badge"
+                    [class.team-detail__form-badge--win]="m.result === 'W'"
+                    [class.team-detail__form-badge--draw]="m.result === 'D'"
+                    [class.team-detail__form-badge--loss]="m.result === 'L'"
+                  >{{ m.result }}</span>
+                </li>
+              }
+            </ul>
+          }
+        }
+      </mat-card-content>
+    </mat-card>
   }
 </div>

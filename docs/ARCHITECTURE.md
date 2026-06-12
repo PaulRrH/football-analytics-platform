@@ -130,9 +130,9 @@ fases futuras (`predictions`, `simulations`, etc.).
 - **Layout**: `MainLayout` (toolbar + sidenav Material) para toda la
   aplicación.
 - **Features**: `dashboard` (ranking Elo vía ApexCharts), `teams`,
-  `competitions`, `matches` — cada una con sus propios componentes de
-  lista/detalle/formulario y un servicio HTTP tipado contra los DTOs del
-  backend.
+  `competitions`, `matches`, `head-to-head` — cada una con sus propios
+  componentes de lista/detalle/formulario y un servicio HTTP tipado contra
+  los DTOs del backend.
 
 ## 6. Infraestructura, Docker, CI/CD
 
@@ -168,8 +168,8 @@ fases futuras (`predictions`, `simulations`, etc.).
 
 ## Roadmap (fases futuras)
 
-- **Fase 2**: motor estadístico (`/stats/teams/:id`, head-to-head,
-  tendencias), carga de datos históricos reales.
+- **Fase 2** (pendiente): carga de datos históricos reales (fuente de
+  datos a definir).
 - **Fase 3**: motor de predicción Elo+Poisson, módulo `predictions`,
   recálculo de Elo al finalizar partidos (domain event). Ver
   [PREDICTION_ENGINE.md](PREDICTION_ENGINE.md).

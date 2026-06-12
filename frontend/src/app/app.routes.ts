@@ -69,6 +69,11 @@ export const routes: Routes = [
         ],
       },
       {
+        path: 'head-to-head',
+        loadComponent: () =>
+          import('./features/stats/head-to-head/head-to-head').then((m) => m.HeadToHead),
+      },
+      {
         path: 'matches',
         children: [
           {

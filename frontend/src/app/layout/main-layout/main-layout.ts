@@ -17,6 +17,7 @@ const NAV_LINKS: NavLink[] = [
   { label: 'Equipos', path: '/teams', icon: 'groups' },
   { label: 'Competiciones', path: '/competitions', icon: 'emoji_events' },
   { label: 'Partidos', path: '/matches', icon: 'sports_soccer' },
+  { label: 'Head to Head', path: '/head-to-head', icon: 'compare_arrows' },
 ];
 
 @Component({
