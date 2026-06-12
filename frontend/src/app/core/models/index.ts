@@ -7,5 +7,7 @@ export * from './match.model';
 export * from './pagination.model';
 export * from './prediction.enum';
 export * from './prediction.model';
+export * from './simulation.enum';
+export * from './simulation.model';
 export * from './stats.model';
 export * from './team.model';

@@ -1,9 +1,9 @@
 # Modelo de Datos
 
 Esquema completo definido en [`backend/prisma/schema.prisma`](../backend/prisma/schema.prisma).
-Incluye todas las entidades del dominio desde la Fase 1, aunque los módulos
-NestJS de `predictions` y `simulations` se implementen en fases
-posteriores.
+Incluye todas las entidades del dominio desde la Fase 1; los módulos NestJS
+`predictions` (Fase 3) y `simulations` (Fase 4) ya están implementados sobre
+este mismo esquema.
 
 ## Diagrama Entidad-Relación
 
@@ -165,22 +165,26 @@ Resultado de un modelo de predicción para un partido. Se puebla vía
 agrega una nueva fila (historial); `GET /predictions/matches/:id` devuelve
 solo la más reciente por `model`.
 
-### TournamentSimulation (`tournament_simulations`) — Fase 4
+### TournamentSimulation (`tournament_simulations`)
 
-Ejecución de una simulación Monte Carlo de un torneo completo.
+Ejecución de una simulación Monte Carlo de un torneo completo. Se crea
+mediante `POST /simulations` (ver [API.md](API.md) y
+[PREDICTION_ENGINE.md](PREDICTION_ENGINE.md) §4), que ejecuta la simulación
+de forma síncrona dentro del request y persiste la fila ya con
+`status = COMPLETED`.
 
 | Campo | Tipo | Notas |
 |---|---|---|
 | `id` | `String (uuid)` | PK |
 | `competitionId` | `String` | FK -> `Competition`, `onDelete: Cascade` |
-| `iterations` | `Int` | p. ej. `10000` |
-| `status` | `SimulationStatus` | default `PENDING` |
-| `startedAt` / `completedAt` | `DateTime?` | |
+| `iterations` | `Int` | 100-5000, default 1000 |
+| `status` | `SimulationStatus` | `COMPLETED` al persistirse (ejecución síncrona); `PENDING`/`RUNNING`/`FAILED` reservados para una futura ejecución asíncrona |
+| `startedAt` / `completedAt` | `DateTime?` | se fijan ambos al persistirse |
 | `createdAt` | `DateTime` | |
 
 Relaciones: `teamResults` (1:N). Índice: `[competitionId]`.
 
-### TeamSimulationResult (`team_simulation_results`) — Fase 4
+### TeamSimulationResult (`team_simulation_results`)
 
 Probabilidades agregadas por equipo de una simulación.
 
@@ -189,10 +193,10 @@ Probabilidades agregadas por equipo de una simulación.
 | `id` | `String (uuid)` | PK |
 | `simulationId` | `String` | FK -> `TournamentSimulation`, `onDelete: Cascade` |
 | `teamId` | `String` | FK -> `Team`, `onDelete: Cascade` |
-| `groupStageProbability` | `Float` | |
-| `roundOf16Probability` / `quarterFinalProbability` / `semiFinalProbability` / `finalProbability` | `Float?` | |
-| `championProbability` | `Float` | |
-| `expectedPosition` | `Float?` | posición esperada en el torneo |
+| `groupStageProbability` | `Float` | fracción de iteraciones entre los `QUALIFIERS_PER_GROUP` (2) primeros del grupo |
+| `roundOf16Probability` / `quarterFinalProbability` / `semiFinalProbability` / `finalProbability` | `Float?` | fracción de iteraciones en las que el equipo alcanzó esa ronda; `null` si el bracket de la competición no llega a esa ronda (p. ej. con 4 clasificados solo existen semifinal y final) |
+| `championProbability` | `Float` | fracción de iteraciones ganadas (0 si nunca clasificó o nunca ganó) |
+| `expectedPosition` | `Float?` | posición media dentro del grupo a lo largo de las iteraciones (`1` = siempre primero) |
 
 Único: `[simulationId, teamId]`.
 

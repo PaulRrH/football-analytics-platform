@@ -1,6 +1,7 @@
 import {
   calculatePoissonOutcomeProbabilities,
   poissonPmf,
+  samplePoissonGoals,
 } from './poisson.util';
 
 describe('poisson.util', () => {
@@ -42,6 +43,31 @@ describe('poisson.util', () => {
       expect(result.homeWinProbability).toBeGreaterThan(
         result.awayWinProbability,
       );
+    });
+  });
+
+  describe('samplePoissonGoals', () => {
+    it('siempre devuelve 0 cuando lambda es 0', () => {
+      expect(samplePoissonGoals(0, () => 0.99)).toBe(0);
+      expect(samplePoissonGoals(0, () => 0.01)).toBe(0);
+    });
+
+    it('es determinista para un generador fijo', () => {
+      expect(samplePoissonGoals(2, () => 0.5)).toBe(2);
+    });
+
+    it('crece cuando el generador produce valores mas cercanos a 1', () => {
+      const small = samplePoissonGoals(1, () => 0.1);
+      const large = samplePoissonGoals(1, () => 0.9);
+
+      expect(large).toBeGreaterThan(small);
+    });
+
+    it('devuelve un entero no negativo con Math.random', () => {
+      const result = samplePoissonGoals(1.5);
+
+      expect(Number.isInteger(result)).toBe(true);
+      expect(result).toBeGreaterThanOrEqual(0);
     });
   });
 });

@@ -9,6 +9,7 @@ import {
   FinishedMatchResult,
   ICompetitionRepository,
   UpdateCompetitionData,
+  UpsertCompetitionTeamData,
 } from '../../domain/competition-repository.interface';
 
 const TEAM_INFO_SELECT = {
@@ -57,9 +58,34 @@ export class PrismaCompetitionRepository implements ICompetitionRepository {
       select: {
         teamId: true,
         groupName: true,
+        seed: true,
         team: { select: TEAM_INFO_SELECT },
       },
       orderBy: [{ groupName: 'asc' }, { seed: 'asc' }],
+    });
+  }
+
+  upsertTeam(
+    competitionId: string,
+    teamId: string,
+    data: UpsertCompetitionTeamData,
+  ): Promise<CompetitionTeamWithTeam> {
+    return this.prisma.competitionTeam.upsert({
+      where: { competitionId_teamId: { competitionId, teamId } },
+      create: { competitionId, teamId, ...data },
+      update: data,
+      select: {
+        teamId: true,
+        groupName: true,
+        seed: true,
+        team: { select: TEAM_INFO_SELECT },
+      },
+    });
+  }
+
+  async removeTeam(competitionId: string, teamId: string): Promise<void> {
+    await this.prisma.competitionTeam.delete({
+      where: { competitionId_teamId: { competitionId, teamId } },
     });
   }
 

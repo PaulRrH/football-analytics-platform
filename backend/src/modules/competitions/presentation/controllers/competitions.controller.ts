@@ -7,15 +7,18 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PaginatedResponseDto } from '../../../../common/dto/paginated-response.dto';
 import { CompetitionResponseDto } from '../../application/dto/competition-response.dto';
+import { CompetitionTeamResponseDto } from '../../application/dto/competition-team-response.dto';
 import { CreateCompetitionDto } from '../../application/dto/create-competition.dto';
 import { QueryCompetitionsDto } from '../../application/dto/query-competitions.dto';
 import { StandingsGroupDto } from '../../application/dto/standings-group.dto';
 import { UpdateCompetitionDto } from '../../application/dto/update-competition.dto';
+import { UpsertCompetitionTeamDto } from '../../application/dto/upsert-competition-team.dto';
 import { CompetitionsService } from '../../application/services/competitions.service';
 
 @ApiTags('competitions')
@@ -71,5 +74,36 @@ export class CompetitionsController {
   @ApiOperation({ summary: 'Eliminar una competicion' })
   remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     return this.competitionsService.remove(id);
+  }
+
+  @Get(':id/teams')
+  @ApiOperation({
+    summary: 'Listar los equipos de una competicion (grupo y seed)',
+  })
+  findTeams(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<CompetitionTeamResponseDto[]> {
+    return this.competitionsService.findCompetitionTeams(id);
+  }
+
+  @Put(':id/teams/:teamId')
+  @ApiOperation({
+    summary: 'Asignar un equipo a la competicion (grupo y/o seed)',
+  })
+  upsertTeam(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('teamId', ParseUUIDPipe) teamId: string,
+    @Body() dto: UpsertCompetitionTeamDto,
+  ): Promise<CompetitionTeamResponseDto> {
+    return this.competitionsService.upsertTeam(id, teamId, dto);
+  }
+
+  @Delete(':id/teams/:teamId')
+  @ApiOperation({ summary: 'Quitar un equipo de la competicion' })
+  removeTeam(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('teamId', ParseUUIDPipe) teamId: string,
+  ): Promise<void> {
+    return this.competitionsService.removeTeam(id, teamId);
   }
 }

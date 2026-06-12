@@ -373,4 +373,287 @@ describe('App (e2e)', () => {
       expect(awayAfter.body.eloRating as number).toBeLessThan(initialAwayElo);
     });
   });
+
+  describe('Competition teams', () => {
+    let competitionId: string;
+    let teamAId: string;
+    let teamBId: string;
+
+    beforeAll(async () => {
+      const competitionRes = await request(app.getHttpServer())
+        .post(`/${apiPrefix}/competitions`)
+        .send({
+          name: 'Test Competition Teams Cup E2E',
+          type: 'WORLD_CUP',
+          season: '2026',
+          startDate: '2026-05-01',
+          endDate: '2026-05-31',
+        })
+        .expect(201);
+      competitionId = competitionRes.body.id as string;
+
+      const teamARes = await request(app.getHttpServer())
+        .post(`/${apiPrefix}/teams`)
+        .send({
+          name: 'Test Competition Teams FC A',
+          shortName: 'TCA',
+          country: 'Test',
+          confederation: 'UEFA',
+        })
+        .expect(201);
+      teamAId = teamARes.body.id as string;
+
+      const teamBRes = await request(app.getHttpServer())
+        .post(`/${apiPrefix}/teams`)
+        .send({
+          name: 'Test Competition Teams FC B',
+          shortName: 'TCB',
+          country: 'Test',
+          confederation: 'UEFA',
+        })
+        .expect(201);
+      teamBId = teamBRes.body.id as string;
+    });
+
+    it('PUT /competitions/:id/teams/:teamId -> 200 asigna grupo y seed', () => {
+      return request(app.getHttpServer())
+        .put(`/${apiPrefix}/competitions/${competitionId}/teams/${teamAId}`)
+        .send({ groupName: 'Grupo A', seed: 1 })
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.teamId).toBe(teamAId);
+          expect(res.body.groupName).toBe('Grupo A');
+          expect(res.body.seed).toBe(1);
+          expect(res.body.team.id).toBe(teamAId);
+        });
+    });
+
+    it('GET /competitions/:id/teams -> 200 lista los equipos asignados', async () => {
+      await request(app.getHttpServer())
+        .put(`/${apiPrefix}/competitions/${competitionId}/teams/${teamBId}`)
+        .send({ groupName: 'Grupo B', seed: 1 })
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .get(`/${apiPrefix}/competitions/${competitionId}/teams`)
+        .expect(200)
+        .expect((res) => {
+          const teams = res.body as Array<{ teamId: string }>;
+          expect(teams.map((t) => t.teamId).sort()).toEqual(
+            [teamAId, teamBId].sort(),
+          );
+        });
+    });
+
+    it('DELETE /competitions/:id/teams/:teamId -> 204 quita un equipo', async () => {
+      await request(app.getHttpServer())
+        .delete(`/${apiPrefix}/competitions/${competitionId}/teams/${teamBId}`)
+        .expect(204);
+
+      await request(app.getHttpServer())
+        .get(`/${apiPrefix}/competitions/${competitionId}/teams`)
+        .expect(200)
+        .expect((res) => {
+          const teams = res.body as Array<{ teamId: string }>;
+          expect(teams.map((t) => t.teamId)).toEqual([teamAId]);
+        });
+    });
+
+    it('DELETE /competitions/:id/teams/:teamId -> 404 si el equipo no esta asignado', () => {
+      return request(app.getHttpServer())
+        .delete(`/${apiPrefix}/competitions/${competitionId}/teams/${teamBId}`)
+        .expect(404);
+    });
+  });
+
+  describe('Simulations', () => {
+    let competitionId: string;
+    let teamIds: string[];
+    let simulationId: string;
+    let simulationTeamId: string;
+
+    beforeAll(async () => {
+      const competitionRes = await request(app.getHttpServer())
+        .post(`/${apiPrefix}/competitions`)
+        .send({
+          name: 'Test Simulations World Cup E2E',
+          type: 'WORLD_CUP',
+          season: '2026',
+          startDate: '2026-06-01',
+          endDate: '2026-06-30',
+        })
+        .expect(201);
+      competitionId = competitionRes.body.id as string;
+
+      teamIds = [];
+      for (let i = 1; i <= 6; i++) {
+        const teamRes = await request(app.getHttpServer())
+          .post(`/${apiPrefix}/teams`)
+          .send({
+            name: `Test Simulations FC ${i}`,
+            shortName: `TS${i}`,
+            country: 'Test',
+            confederation: 'UEFA',
+          })
+          .expect(201);
+        teamIds.push(teamRes.body.id as string);
+      }
+
+      const [a1, a2, a3, b1, b2, b3] = teamIds;
+
+      for (const [teamId, groupName] of [
+        [a1, 'Grupo A'],
+        [a2, 'Grupo A'],
+        [a3, 'Grupo A'],
+        [b1, 'Grupo B'],
+        [b2, 'Grupo B'],
+        [b3, 'Grupo B'],
+      ]) {
+        await request(app.getHttpServer())
+          .put(`/${apiPrefix}/competitions/${competitionId}/teams/${teamId}`)
+          .send({ groupName })
+          .expect(200);
+      }
+
+      const groupStageMatches = [
+        { homeTeamId: a1, awayTeamId: a2, homeGoals: 2, awayGoals: 0 },
+        { homeTeamId: a1, awayTeamId: a3, homeGoals: 1, awayGoals: 1 },
+        { homeTeamId: a2, awayTeamId: a3, homeGoals: null, awayGoals: null },
+        { homeTeamId: b1, awayTeamId: b2, homeGoals: 0, awayGoals: 1 },
+        { homeTeamId: b1, awayTeamId: b3, homeGoals: null, awayGoals: null },
+        { homeTeamId: b2, awayTeamId: b3, homeGoals: 2, awayGoals: 2 },
+      ];
+
+      for (const match of groupStageMatches) {
+        const isFinished = match.homeGoals !== null;
+        await request(app.getHttpServer())
+          .post(`/${apiPrefix}/matches`)
+          .send({
+            competitionId,
+            homeTeamId: match.homeTeamId,
+            awayTeamId: match.awayTeamId,
+            matchDate: '2026-06-05T18:00:00.000Z',
+            stage: 'GROUP_STAGE',
+            status: isFinished ? 'FINISHED' : 'SCHEDULED',
+            ...(isFinished
+              ? { homeGoals: match.homeGoals, awayGoals: match.awayGoals }
+              : {}),
+          })
+          .expect(201);
+      }
+    });
+
+    it('POST /simulations -> 400 si la competicion no tiene fase de grupos', async () => {
+      const otherCompetitionRes = await request(app.getHttpServer())
+        .post(`/${apiPrefix}/competitions`)
+        .send({
+          name: 'Test Simulations No Groups Cup E2E',
+          type: 'FRIENDLY',
+          season: '2026',
+          startDate: '2026-07-01',
+          endDate: '2026-07-31',
+        })
+        .expect(201);
+
+      await request(app.getHttpServer())
+        .post(`/${apiPrefix}/simulations`)
+        .send({ competitionId: otherCompetitionRes.body.id, iterations: 100 })
+        .expect(400);
+    });
+
+    it('POST /simulations -> 404 si la competicion no existe', () => {
+      return request(app.getHttpServer())
+        .post(`/${apiPrefix}/simulations`)
+        .send({
+          competitionId: '00000000-0000-0000-0000-000000000000',
+          iterations: 100,
+        })
+        .expect(404);
+    });
+
+    it('POST /simulations -> 201 ejecuta una simulacion Monte Carlo completa', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/${apiPrefix}/simulations`)
+        .send({ competitionId, iterations: 100 })
+        .expect(201);
+
+      expect(res.body.status).toBe('COMPLETED');
+      expect(res.body.competitionId).toBe(competitionId);
+      expect(res.body.iterations).toBe(100);
+
+      const teamResults = res.body.teamResults as Array<{
+        team: { id: string };
+        groupStageProbability: number;
+        roundOf16Probability: number | null;
+        quarterFinalProbability: number | null;
+        semiFinalProbability: number | null;
+        finalProbability: number | null;
+        championProbability: number;
+        expectedPosition: number;
+      }>;
+
+      expect(teamResults).toHaveLength(6);
+      expect(teamResults.map((r) => r.team.id).sort()).toEqual(
+        [...teamIds].sort(),
+      );
+
+      const totalChampionProbability = teamResults.reduce(
+        (sum, r) => sum + r.championProbability,
+        0,
+      );
+      expect(totalChampionProbability).toBeCloseTo(1, 1);
+
+      for (const result of teamResults) {
+        expect(result.groupStageProbability).toBeGreaterThanOrEqual(0);
+        expect(result.groupStageProbability).toBeLessThanOrEqual(1);
+        expect(result.roundOf16Probability).toBeNull();
+        expect(result.quarterFinalProbability).toBeNull();
+        expect(result.semiFinalProbability).not.toBeNull();
+        expect(result.finalProbability).not.toBeNull();
+      }
+
+      simulationId = res.body.id as string;
+      simulationTeamId = teamResults[0].team.id;
+    });
+
+    it('GET /simulations/:id -> 200 estado de la simulacion', () => {
+      return request(app.getHttpServer())
+        .get(`/${apiPrefix}/simulations/${simulationId}`)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.id).toBe(simulationId);
+          expect(res.body.status).toBe('COMPLETED');
+        });
+    });
+
+    it('GET /simulations/:id/results -> 200 resultados por equipo', () => {
+      return request(app.getHttpServer())
+        .get(`/${apiPrefix}/simulations/${simulationId}/results`)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.id).toBe(simulationId);
+          expect(res.body.teamResults).toHaveLength(6);
+        });
+    });
+
+    it('GET /simulations/:id/results/teams/:teamId -> 200 resultado de un equipo', () => {
+      return request(app.getHttpServer())
+        .get(
+          `/${apiPrefix}/simulations/${simulationId}/results/teams/${simulationTeamId}`,
+        )
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.team.id).toBe(simulationTeamId);
+          expect(res.body.championProbability).toBeGreaterThanOrEqual(0);
+        });
+    });
+
+    it('GET /simulations/:id/results/teams/:teamId -> 404 si el equipo es ajeno a la simulacion', () => {
+      return request(app.getHttpServer())
+        .get(
+          `/${apiPrefix}/simulations/${simulationId}/results/teams/00000000-0000-0000-0000-000000000000`,
+        )
+        .expect(404);
+    });
+  });
 });

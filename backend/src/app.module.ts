@@ -12,6 +12,7 @@ import { CompetitionsModule } from './modules/competitions/competitions.module';
 import { HealthModule } from './modules/health/health.module';
 import { MatchesModule } from './modules/matches/matches.module';
 import { PredictionsModule } from './modules/predictions/predictions.module';
+import { SimulationsModule } from './modules/simulations/simulations.module';
 import { StatsModule } from './modules/stats/stats.module';
 import { TeamsModule } from './modules/teams/teams.module';
 
@@ -44,6 +45,7 @@ import { TeamsModule } from './modules/teams/teams.module';
     CompetitionsModule,
     MatchesModule,
     PredictionsModule,
+    SimulationsModule,
     StatsModule,
     HealthModule,
   ],

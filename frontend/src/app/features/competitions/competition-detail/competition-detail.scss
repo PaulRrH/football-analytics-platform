@@ -58,6 +58,20 @@
     color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
     padding: 1rem;
   }
+
+  &__simulation-form {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+
+    mat-form-field {
+      flex: 0 0 160px;
+    }
+
+    button {
+      margin-top: 8px;
+    }
+  }
 }
 
 .error-message {

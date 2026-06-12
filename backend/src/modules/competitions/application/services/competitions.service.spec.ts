@@ -37,6 +37,8 @@ describe('CompetitionsService', () => {
       delete: jest.fn(),
       findTeams: jest.fn(),
       findFinishedMatches: jest.fn(),
+      upsertTeam: jest.fn(),
+      removeTeam: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -306,6 +308,110 @@ describe('CompetitionsService', () => {
       const result = await service.getStandings(competition.id);
 
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('findCompetitionTeams', () => {
+    it('retorna los equipos de la competicion', async () => {
+      repository.findById.mockResolvedValue(competition);
+      repository.findTeams.mockResolvedValue([
+        {
+          teamId: 'team-arg',
+          groupName: 'Grupo A',
+          seed: 1,
+          team: {
+            id: 'team-arg',
+            name: 'Argentina',
+            shortName: 'ARG',
+            logoUrl: null,
+          },
+        },
+      ]);
+
+      const result = await service.findCompetitionTeams(competition.id);
+
+      expect(result).toEqual([
+        {
+          teamId: 'team-arg',
+          groupName: 'Grupo A',
+          seed: 1,
+          team: {
+            id: 'team-arg',
+            name: 'Argentina',
+            shortName: 'ARG',
+            logoUrl: null,
+          },
+        },
+      ]);
+    });
+
+    it('lanza NotFoundException cuando la competicion no existe', async () => {
+      repository.findById.mockResolvedValue(null);
+
+      await expect(
+        service.findCompetitionTeams('missing'),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe('upsertTeam', () => {
+    it('asigna grupo y seed a un equipo de la competicion', async () => {
+      repository.findById.mockResolvedValue(competition);
+      repository.upsertTeam.mockResolvedValue({
+        teamId: 'team-arg',
+        groupName: 'Grupo A',
+        seed: 1,
+        team: {
+          id: 'team-arg',
+          name: 'Argentina',
+          shortName: 'ARG',
+          logoUrl: null,
+        },
+      });
+
+      const result = await service.upsertTeam(competition.id, 'team-arg', {
+        groupName: 'Grupo A',
+        seed: 1,
+      });
+
+      expect(repository.upsertTeam).toHaveBeenCalledWith(
+        competition.id,
+        'team-arg',
+        { groupName: 'Grupo A', seed: 1 },
+      );
+      expect(result.groupName).toBe('Grupo A');
+      expect(result.seed).toBe(1);
+    });
+
+    it('lanza NotFoundException cuando la competicion no existe', async () => {
+      repository.findById.mockResolvedValue(null);
+
+      await expect(
+        service.upsertTeam('missing', 'team-arg', { groupName: 'Grupo A' }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(repository.upsertTeam).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('removeTeam', () => {
+    it('quita un equipo de la competicion', async () => {
+      repository.findById.mockResolvedValue(competition);
+
+      await service.removeTeam(competition.id, 'team-arg');
+
+      expect(repository.removeTeam).toHaveBeenCalledWith(
+        competition.id,
+        'team-arg',
+      );
+    });
+
+    it('lanza NotFoundException cuando la competicion no existe', async () => {
+      repository.findById.mockResolvedValue(null);
+
+      await expect(
+        service.removeTeam('missing', 'team-arg'),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(repository.removeTeam).not.toHaveBeenCalled();
     });
   });
 });

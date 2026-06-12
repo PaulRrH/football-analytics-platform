@@ -118,5 +118,39 @@
         }
       </mat-card-content>
     </mat-card>
+
+    @if (hasGroups()) {
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>Simulación de torneo</mat-card-title>
+          <mat-card-subtitle>
+            Ejecuta una simulación Monte Carlo para estimar las probabilidades de cada equipo
+          </mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <form class="competition-detail__simulation-form" (ngSubmit)="runSimulation()">
+            <mat-form-field>
+              <mat-label>Iteraciones</mat-label>
+              <input matInput type="number" [formControl]="iterationsControl" min="100" max="5000" />
+              @if (iterationsControl.invalid) {
+                <mat-error>Debe estar entre 100 y 5000</mat-error>
+              }
+            </mat-form-field>
+
+            <button mat-flat-button color="primary" type="submit" [disabled]="simulating()">
+              @if (simulating()) {
+                <mat-spinner diameter="20" />
+              } @else {
+                Simular torneo
+              }
+            </button>
+          </form>
+
+          @if (simulationError()) {
+            <p class="error-message">{{ simulationError() }}</p>
+          }
+        </mat-card-content>
+      </mat-card>
+    }
   }
 </div>

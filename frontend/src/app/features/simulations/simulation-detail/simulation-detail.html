@@ -1,0 +1,100 @@
+<div class="simulation-detail">
+  <div class="simulation-detail__header">
+    @if (simulation(); as currentSimulation) {
+      <a
+        mat-icon-button
+        [routerLink]="['/competitions', currentSimulation.competitionId]"
+        aria-label="Volver a la competición"
+      >
+        <mat-icon>arrow_back</mat-icon>
+      </a>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="simulation-detail__loading">
+      <mat-spinner diameter="40" />
+    </div>
+  } @else if (errorMessage()) {
+    <p class="error-message">{{ errorMessage() }}</p>
+  } @else if (simulation(); as currentSimulation) {
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Simulación de torneo</mat-card-title>
+        <mat-card-subtitle>
+          {{ currentSimulation.iterations }} iteraciones
+          @if (currentSimulation.completedAt) {
+            &middot; completada el {{ currentSimulation.completedAt | date: 'medium' }}
+          }
+        </mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="simulation-detail__table-wrapper">
+          <table class="simulation-detail__table">
+            <thead>
+              <tr>
+                <th>Equipo</th>
+                <th>Fase de grupos</th>
+                <th>Pos. esperada</th>
+                <th>Octavos</th>
+                <th>Cuartos</th>
+                <th>Semifinal</th>
+                <th>Final</th>
+                <th>Campeón</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (result of currentSimulation.teamResults; track result.id) {
+                <tr>
+                  <td class="simulation-detail__team">
+                    @if (result.team.logoUrl) {
+                      <img [src]="result.team.logoUrl" [alt]="result.team.name" class="simulation-detail__flag" />
+                    }
+                    <span>{{ result.team.name }}</span>
+                  </td>
+                  <td>{{ result.groupStageProbability * 100 | number: '1.0-1' }}%</td>
+                  <td>
+                    @if (result.expectedPosition !== null) {
+                      {{ result.expectedPosition | number: '1.1-1' }}
+                    } @else {
+                      &mdash;
+                    }
+                  </td>
+                  <td>
+                    @if (result.roundOf16Probability !== null) {
+                      {{ result.roundOf16Probability * 100 | number: '1.0-1' }}%
+                    } @else {
+                      &mdash;
+                    }
+                  </td>
+                  <td>
+                    @if (result.quarterFinalProbability !== null) {
+                      {{ result.quarterFinalProbability * 100 | number: '1.0-1' }}%
+                    } @else {
+                      &mdash;
+                    }
+                  </td>
+                  <td>
+                    @if (result.semiFinalProbability !== null) {
+                      {{ result.semiFinalProbability * 100 | number: '1.0-1' }}%
+                    } @else {
+                      &mdash;
+                    }
+                  </td>
+                  <td>
+                    @if (result.finalProbability !== null) {
+                      {{ result.finalProbability * 100 | number: '1.0-1' }}%
+                    } @else {
+                      &mdash;
+                    }
+                  </td>
+                  <td>{{ result.championProbability * 100 | number: '1.0-1' }}%</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  }
+</div>

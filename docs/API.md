@@ -121,9 +121,57 @@ Ambos devuelven un array de `PredictionResponseDto`: `id`, `matchId`,
 Cada llamada agrega una nueva fila por modelo (historial); `GET
 /predictions/matches/:id` siempre devuelve solo la más reciente de cada uno.
 
-## Roadmap (no implementado en Fase 3)
+## Fase 4 (implementados)
+
+### Competition teams (bajo `/api/v1/competitions/:id`)
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/competitions/:id/teams` | Lista los equipos inscritos en la competición (`groupName`, `seed`). |
+| PUT | `/competitions/:id/teams/:teamId` | Asigna o actualiza `groupName`/`seed` de un equipo en la competición (upsert). |
+| DELETE | `/competitions/:id/teams/:teamId` | Quita un equipo de la competición. `404` si no estaba inscrito. |
+
+`GET /competitions/:id/teams` y `PUT /competitions/:id/teams/:teamId`
+devuelven `CompetitionTeamResponseDto[]`/`CompetitionTeamResponseDto`:
+`teamId`, `groupName` (`string | null`), `seed` (`number | null`) y `team`
+(`id`, `name`, `shortName`, `logoUrl`). `PUT` acepta
+`{ groupName?: string | null, seed?: number | null }`.
+
+### Simulations (`/api/v1/simulations`)
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| POST | `/simulations` | Ejecuta una simulación Monte Carlo del torneo de una competición y persiste el resultado. |
+| GET | `/simulations/:id` | Estado/metadatos de una simulación. |
+| GET | `/simulations/:id/results` | Resultado completo de una simulación, incluyendo `teamResults`. |
+| GET | `/simulations/:id/results/teams/:teamId` | Resultado de un equipo concreto dentro de una simulación. |
+
+`POST /simulations` recibe `{ competitionId, iterations? }` (`iterations`
+entre 100 y 5000, default 1000 — `MIN_ITERATIONS`/`MAX_ITERATIONS`/
+`DEFAULT_ITERATIONS`). `404` si `competitionId` no existe; `400 Bad Request`
+si la competición no tiene ningún `CompetitionTeam.groupName` configurado
+(ver Competition teams arriba).
+
+**Ejecución síncrona**: la simulación corre dentro del propio request — la
+respuesta ya tiene `status: 'COMPLETED'` (sin colas ni worker). Devuelve
+`SimulationResultsResponseDto`: `id`, `competitionId`, `iterations`,
+`status`, `startedAt`, `completedAt`, `createdAt` y `teamResults[]` (ordenado
+por `championProbability` descendente). Cada elemento de `teamResults[]`
+(`TeamSimulationResultDto`) incluye `id`, `team` (`id`, `name`, `shortName`,
+`logoUrl`), `groupStageProbability`, `expectedPosition`,
+`roundOf16Probability`, `quarterFinalProbability`, `semiFinalProbability`,
+`finalProbability` (en `[0,1]`, `null` si esa fase no existe en el bracket de
+la competición — p. ej. con `QUALIFIERS_PER_GROUP = 2` clasificados de 2
+grupos solo hay semifinal y final) y `championProbability` (siempre
+numérico).
+
+`GET /simulations/:id` devuelve `SimulationResponseDto` (igual que arriba sin
+`teamResults`). `GET /simulations/:id/results/teams/:teamId` devuelve un
+único `TeamSimulationResultDto`; `404` si la simulación o el equipo no
+existen.
+
+## Roadmap (no implementado en Fase 4)
 
 | Fase | Endpoints | Descripción |
 |---|---|---|
-| 4 | `POST /simulations`, `GET /simulations/:id`, `GET /simulations/:id/results[/teams/:teamId]` | Simulación Monte Carlo de torneo (async, BullMQ) |
 | 5 | `GET /dashboard/summary`, `GET /dashboard/rankings`, WS `/ws` (`prediction.updated`, `simulation.progress`) | Dashboard agregado y eventos en tiempo real |

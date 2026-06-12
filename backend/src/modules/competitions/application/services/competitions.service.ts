@@ -8,16 +8,23 @@ import { Competition } from '@prisma/client';
 import { plainToInstance } from 'class-transformer';
 import { PaginatedResponseDto } from '../../../../common/dto/paginated-response.dto';
 import {
+  applyMatchResult,
+  sortStandings,
+} from '../../../../common/utils/standings.util';
+import {
+  type CompetitionTeamWithTeam,
   type ICompetitionRepository,
   type StandingsTeamInfo,
   COMPETITION_REPOSITORY,
 } from '../../domain/competition-repository.interface';
 import { CompetitionResponseDto } from '../dto/competition-response.dto';
+import { CompetitionTeamResponseDto } from '../dto/competition-team-response.dto';
 import { CreateCompetitionDto } from '../dto/create-competition.dto';
 import { QueryCompetitionsDto } from '../dto/query-competitions.dto';
 import { StandingsGroupDto } from '../dto/standings-group.dto';
 import { StandingsRowDto } from '../dto/standings-row.dto';
 import { UpdateCompetitionDto } from '../dto/update-competition.dto';
+import { UpsertCompetitionTeamDto } from '../dto/upsert-competition-team.dto';
 
 @Injectable()
 export class CompetitionsService {
@@ -98,6 +105,31 @@ export class CompetitionsService {
     await this.competitionRepository.delete(id);
   }
 
+  async findCompetitionTeams(
+    id: string,
+  ): Promise<CompetitionTeamResponseDto[]> {
+    await this.findCompetitionOrThrow(id);
+
+    const teams = await this.competitionRepository.findTeams(id);
+    return teams.map((team) => this.toTeamResponse(team));
+  }
+
+  async upsertTeam(
+    id: string,
+    teamId: string,
+    dto: UpsertCompetitionTeamDto,
+  ): Promise<CompetitionTeamResponseDto> {
+    await this.findCompetitionOrThrow(id);
+
+    const team = await this.competitionRepository.upsertTeam(id, teamId, dto);
+    return this.toTeamResponse(team);
+  }
+
+  async removeTeam(id: string, teamId: string): Promise<void> {
+    await this.findCompetitionOrThrow(id);
+    await this.competitionRepository.removeTeam(id, teamId);
+  }
+
   async getStandings(id: string): Promise<StandingsGroupDto[]> {
     await this.findCompetitionOrThrow(id);
 
@@ -168,58 +200,18 @@ export class CompetitionsService {
         continue;
       }
 
-      this.applyMatchResult(homeRow, awayRow, match.homeGoals, match.awayGoals);
+      applyMatchResult(homeRow, awayRow, match.homeGoals, match.awayGoals);
     }
 
     return groupOrder.map((groupName) => ({
       groupName,
-      standings: this.sortStandings(
+      standings: sortStandings(
         [...rowsByTeamId.entries()]
           .filter(([teamId]) => groupByTeamId.get(teamId) === groupName)
           .map(([, row]) => row),
+        (a, b) => a.team.name.localeCompare(b.team.name),
       ),
     }));
-  }
-
-  private applyMatchResult(
-    home: StandingsRowDto,
-    away: StandingsRowDto,
-    homeGoals: number,
-    awayGoals: number,
-  ): void {
-    home.played += 1;
-    away.played += 1;
-    home.goalsFor += homeGoals;
-    home.goalsAgainst += awayGoals;
-    away.goalsFor += awayGoals;
-    away.goalsAgainst += homeGoals;
-    home.goalDifference = home.goalsFor - home.goalsAgainst;
-    away.goalDifference = away.goalsFor - away.goalsAgainst;
-
-    if (homeGoals > awayGoals) {
-      home.won += 1;
-      home.points += 3;
-      away.lost += 1;
-    } else if (homeGoals < awayGoals) {
-      away.won += 1;
-      away.points += 3;
-      home.lost += 1;
-    } else {
-      home.drawn += 1;
-      home.points += 1;
-      away.drawn += 1;
-      away.points += 1;
-    }
-  }
-
-  private sortStandings(rows: StandingsRowDto[]): StandingsRowDto[] {
-    return [...rows].sort(
-      (a, b) =>
-        b.points - a.points ||
-        b.goalDifference - a.goalDifference ||
-        b.goalsFor - a.goalsFor ||
-        a.team.name.localeCompare(b.team.name),
-    );
   }
 
   private validateDateRange(startDate: Date, endDate: Date): void {
@@ -242,5 +234,15 @@ export class CompetitionsService {
     return plainToInstance(CompetitionResponseDto, competition, {
       excludeExtraneousValues: true,
     });
+  }
+
+  private toTeamResponse(
+    team: CompetitionTeamWithTeam,
+  ): CompetitionTeamResponseDto {
+    return plainToInstance(
+      CompetitionTeamResponseDto,
+      { ...team, seed: team.seed ?? null },
+      { excludeExtraneousValues: true },
+    );
   }
 }

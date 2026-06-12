@@ -74,6 +74,13 @@ export const routes: Routes = [
           import('./features/stats/head-to-head/head-to-head').then((m) => m.HeadToHead),
       },
       {
+        path: 'simulations/:id',
+        loadComponent: () =>
+          import('./features/simulations/simulation-detail/simulation-detail').then(
+            (m) => m.SimulationDetail,
+          ),
+      },
+      {
         path: 'matches',
         children: [
           {

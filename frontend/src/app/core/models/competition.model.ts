@@ -54,3 +54,10 @@ export interface StandingsGroup {
   groupName: string | null;
   standings: StandingsRow[];
 }
+
+export interface CompetitionTeam {
+  teamId: string;
+  groupName: string | null;
+  seed: number | null;
+  team: StandingsTeam;
+}

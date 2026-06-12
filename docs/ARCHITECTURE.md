@@ -14,12 +14,10 @@ flowchart TB
 
     subgraph Backend["Railway / Render (Docker)"]
         API["NestJS API REST + WebSocket Gateway"]
-        WORKER["NestJS Worker (BullMQ)\n(Fase 4+)"]
     end
 
     subgraph Data["Capa de Datos"]
         PG[("PostgreSQL\n(Prisma ORM)")]
-        REDIS[("Redis\nCache + Colas")]
     end
 
     subgraph External["APIs Externas (futuro)"]
@@ -29,9 +27,6 @@ flowchart TB
     SPA -- HTTPS/REST --> API
     SPA -- WebSocket --> API
     API -- Prisma --> PG
-    API -- cache/queue --> REDIS
-    WORKER -- jobs --> REDIS
-    WORKER -- resultados --> PG
     API -. futuro .-> EXT
 ```
 
@@ -39,12 +34,14 @@ flowchart TB
   Material, ApexCharts, RxJS. SPA estática servida por Vercel.
 - **Backend**: NestJS modular (Clean Architecture por módulo), API REST +
   Swagger + WebSocket gateway (predicciones en tiempo real, Fase 5).
-- **Worker**: mismo código base, entrypoint distinto (`worker.ts`), procesa
-  jobs pesados (Monte Carlo) vía BullMQ — Fase 4.
-- **Datos**: PostgreSQL como única fuente de verdad; Redis para cache y colas
-  (introducido en Fase 4, documentado desde ya).
+- **Datos**: PostgreSQL como única fuente de verdad.
 - **Externo**: interfaz `SportsDataProvider` (puerto/adaptador) para futuras
   integraciones, sin implementación concreta aún.
+- **Simulaciones Monte Carlo (Fase 4)**: se ejecutan de forma síncrona dentro
+  de la API (sin Redis/BullMQ/worker). Esa infraestructura queda reservada
+  para una futura migración a ejecución asíncrona si el volumen de
+  iteraciones lo requiere (ver [PREDICTION_ENGINE.md](PREDICTION_ENGINE.md)
+  §4).
 
 ## 2. Decisiones de stack
 
@@ -57,7 +54,7 @@ flowchart TB
 | Validación | class-validator / class-transformer | Estándar NestJS, DTOs declarativos |
 | Logging | nestjs-pino (JSON estructurado) | Bajo overhead, agregable en plataformas cloud |
 | Docs API | @nestjs/swagger (OpenAPI) | Documentación interactiva auto-generada |
-| Cache/Colas | Redis + BullMQ (Fase 4) | Necesario para simulaciones Monte Carlo sin bloquear requests |
+| Cache/Colas | Redis + BullMQ (futuro) | Reservado para una futura migración a ejecución asíncrona de simulaciones Monte Carlo; Fase 4 ejecuta de forma síncrona sin esta infraestructura |
 | Contenedores | Docker multi-stage (backend, frontend) | Builds reproducibles y deploy uniforme |
 | CI | GitHub Actions (lint+test+build, ambos apps) | Calidad continua |
 | Hosting | Vercel (frontend) / Railway o Render (backend+DB) | Despliegue independiente por proyecto |
@@ -100,8 +97,9 @@ modules/<modulo>/
   son públicos, sin autenticación ni autorización.
 
 Los módulos `teams`, `matches` y `competitions` son la implementación de
-referencia completa de este patrón y sirven de plantilla para los módulos de
-fases futuras (`predictions`, `simulations`, etc.).
+referencia completa de este patrón y sirven de plantilla; `predictions`
+(Fase 3) y `simulations` (Fase 4) ya están implementados siguiendo la misma
+estructura.
 
 ## 4. Transversal (cross-cutting)
 
@@ -134,10 +132,12 @@ fases futuras (`predictions`, `simulations`, etc.).
 - **Layout**: `MainLayout` (toolbar + sidenav Material) para toda la
   aplicación.
 - **Features**: `dashboard` (ranking Elo vía ApexCharts), `teams`,
-  `competitions`, `matches` (incluye `match-detail` con generación de
-  predicciones Elo/Poisson/Ensemble), `head-to-head` — cada una con sus
-  propios componentes de lista/detalle/formulario y un servicio HTTP tipado
-  contra los DTOs del backend.
+  `competitions` (incluye gestión de grupos y la card "Simular torneo"),
+  `matches` (incluye `match-detail` con generación de predicciones
+  Elo/Poisson/Ensemble), `head-to-head`, `simulations` (página de resultados
+  de una simulación Monte Carlo) — cada una con sus propios componentes de
+  lista/detalle/formulario y un servicio HTTP tipado contra los DTOs del
+  backend.
 
 ## 6. Infraestructura, Docker, CI/CD
 
@@ -147,7 +147,8 @@ fases futuras (`predictions`, `simulations`, etc.).
 - `frontend/Dockerfile` + `nginx.conf`: build Angular → servir estático (uso
   en docker-compose local; Vercel no usa este Dockerfile en producción).
 - `docker-compose.yml` (raíz): `postgres`, `backend`, `frontend` para
-  desarrollo local end-to-end. Redis/worker se añaden en Fase 4.
+  desarrollo local end-to-end. Redis/worker quedan reservados para una futura
+  migración a ejecución asíncrona (no requeridos por Fase 4).
 - `.github/workflows/ci.yml`: jobs paralelos `backend` (lint, prisma
   generate, jest unit + e2e con servicio postgres, build) y `frontend`
   (lint, unit tests, build).
@@ -159,9 +160,10 @@ fases futuras (`predictions`, `simulations`, etc.).
   pool de conexiones (PgBouncer) y réplicas de lectura para
   dashboard/analítica.
 - **Cache**: Redis para rankings, agregados de dashboard y resultados de
-  predicción (TTL + invalidación al actualizar datos) — Fase 4+.
+  predicción (TTL + invalidación al actualizar datos) — futuro.
 - **Cómputo pesado asíncrono**: BullMQ + Redis para Monte Carlo y recálculo
-  masivo de Elo; workers escalables independientemente de la API.
+  masivo de Elo; workers escalables independientemente de la API — futuro
+  (Fase 4 ejecuta las simulaciones de forma síncrona).
 - **Horizontal**: API stateless detrás del balanceador de Railway/Render;
   múltiples instancias.
 - **Tiempo real multi-instancia**: adaptador Redis para Socket.io
@@ -173,8 +175,6 @@ fases futuras (`predictions`, `simulations`, etc.).
 
 ## Roadmap (fases futuras)
 
-- **Fase 4**: Redis + BullMQ + worker, simulaciones Monte Carlo, módulo
-  `simulations`.
 - **Fase 5**: Dashboard completo (ApexCharts avanzado) + WebSocket en tiempo
   real.
 - **Fase 6**: Panel admin completo (gestión usuarios/roles, audit log).

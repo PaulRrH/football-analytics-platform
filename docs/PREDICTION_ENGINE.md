@@ -9,8 +9,10 @@ predicción. Las entidades `Prediction`, `TournamentSimulation` y
 **Estado**: §1-3 (Elo, Poisson, Ensemble) implementados en Fase 3 — módulo
 `predictions` (`GET /predictions/matches/:id`,
 `POST /predictions/matches/:id/generate`, ver [API.md](API.md)) y recálculo
-de Elo al finalizar partidos. §4 (Monte Carlo) y §5 (ML) son diseño para
-fases futuras.
+de Elo al finalizar partidos. §4 (Monte Carlo) implementado en Fase 4 — módulo
+`simulations` (`POST /simulations`, `GET /simulations/:id`,
+`GET /simulations/:id/results[/teams/:teamId]`, ver [API.md](API.md)). §5
+(ML) es diseño para una fase futura.
 
 ## 1. Modelo Elo (implementado)
 
@@ -138,31 +140,69 @@ score / log-loss).
 Poisson (`λ_home`/`λ_away`). Se persiste como `Prediction` con
 `model = ENSEMBLE`.
 
-## 4. Simulación Monte Carlo de torneos (Fase 4)
+## 4. Simulación Monte Carlo de torneos (implementado, síncrono)
 
-Para un `TournamentSimulation` con `iterations` (p. ej. `10000`):
+Implementado en el módulo `simulations` (`POST /simulations`,
+`GET /simulations/:id`, `GET /simulations/:id/results[/teams/:teamId]`, ver
+[API.md](API.md)). `runTournamentSimulation`
+(`backend/src/modules/simulations/application/tournament-simulator.ts`) es
+una función pura que recibe los equipos/grupos (`CompetitionTeam.groupName`),
+los partidos de fase de grupos (`Match.stage = GROUP_STAGE`), las fuerzas de
+ataque/defensa (§2) y el `eloRating` (§1) de cada equipo, y ejecuta
+`iterations` (100-5000, default 1000 — `MIN_ITERATIONS`/`MAX_ITERATIONS`/
+`DEFAULT_ITERATIONS`) repeticiones de:
 
-1. Para cada iteración:
-   - Simular cada partido de fase de grupos muestreando un marcador desde la
-     matriz Poisson (o desde `P_ensemble` para determinar
-     victoria/empate/derrota y luego un marcador Poisson coherente).
-   - Calcular la clasificación de cada grupo con las reglas habituales
-     (puntos, diferencia de goles, goles a favor).
-   - Simular cada ronda eliminatoria (`ROUND_OF_16` → `FINAL`) de la misma
-     forma, sin empates (penales si aplica: 50/50 o ajustado por Elo).
-   - Registrar, por equipo, en qué fase quedó eliminado y si fue campeón.
-2. Agregar resultados de las `iterations` en `TeamSimulationResult`:
-   - `groupStageProbability`, `roundOf16Probability`,
-     `quarterFinalProbability`, `semiFinalProbability`,
-     `finalProbability`, `championProbability` = frecuencia relativa de
-     alcanzar/superar cada fase.
-   - `expectedPosition` = posición final promedio.
+1. **Fase de grupos**: para cada partido, si ya tiene marcador (`FINISHED`)
+   se usa tal cual; si no, se calculan `λ_home`/`λ_away` (§2,
+   `calculatePoissonPrediction`) y se muestrean goles con
+   `samplePoissonGoals` (algoritmo de Knuth,
+   `backend/src/common/utils/poisson.util.ts`). La clasificación de cada
+   grupo se calcula con `applyMatchResult`/`sortStandings`
+   (`backend/src/common/utils/standings.util.ts`, las mismas funciones que
+   usa `GET /competitions/:id/standings`).
+2. **Clasificados**: los mejores `QUALIFIERS_PER_GROUP = 2` de cada grupo
+   pasan a eliminatorias. El orden de siembra agrupa primero todos los
+   primeros de grupo (orden alfabético de `groupName`), luego todos los
+   segundos, etc.
+3. **Bracket**: `bracketSize = nextPowerOfTwo(clasificados.length)`. Los
+   slots se asignan según `generateBracketSeedOrder(bracketSize)` (algoritmo
+   recursivo estándar de seeding: `seeds(2) = [1,2]`, `seeds(2n)` intercala
+   `[s, 2n+1-s]` para cada `s` de `seeds(n)`); los slots sobrantes quedan
+   vacíos (*bye*, el equipo del slot opuesto avanza automáticamente).
+4. **Eliminatorias**: cada cruce se resuelve con `calculateEnsemblePrediction`
+   (§3, Elo+Poisson) muestreando victoria/empate/derrota y, si aplica, un
+   marcador Poisson. Un empate se resuelve con
+   `calculateEloOutcomeProbabilities` usando `drawProbability = 0` (reparto
+   puro Elo entre los dos equipos, sin probabilidad de empate) y se muestrea
+   el ganador.
+5. Se registra, por equipo, si alcanzó cada ronda rastreada
+   (`TRACKED_BRACKET_SIZES = [16, 8, 4, 2]` → octavos/cuartos/semifinal/final)
+   y si fue campeón.
 
-**Ejecución asíncrona**: por su costo computacional, la simulación se encola
-como job de BullMQ (Redis) y se procesa en el `worker` (ver
-[ARCHITECTURE.md](ARCHITECTURE.md)). El estado (`PENDING` → `RUNNING` →
-`COMPLETED`/`FAILED`) se expone vía `GET /simulations/:id`, y el progreso se
-puede emitir por WebSocket (`simulation.progress`, Fase 5).
+Al terminar las `iterations`, se agregan las frecuencias relativas en
+`TeamSimulationResult`:
+
+- `groupStageProbability` = fracción de iteraciones en las que el equipo
+  terminó entre los `QUALIFIERS_PER_GROUP` primeros de su grupo.
+- `expectedPosition` = posición media del equipo dentro de su grupo a lo
+  largo de las iteraciones (`1` = siempre primero).
+- `roundOf16Probability` / `quarterFinalProbability` / `semiFinalProbability`
+  / `finalProbability` = fracción de iteraciones en las que el equipo alcanzó
+  esa ronda; `null` si el bracket de la competición es demasiado pequeño para
+  que esa ronda exista (p. ej. con 2 grupos x 2 clasificados,
+  `bracketSize = 4` y solo existen semifinal y final).
+- `championProbability` = fracción de iteraciones en las que el equipo ganó
+  el torneo (siempre numérico, `0` si nunca clasificó o nunca ganó).
+
+**Ejecución síncrona**: `POST /simulations` corre la simulación dentro del
+propio request y persiste el `TournamentSimulation` ya como `COMPLETED`
+(`startedAt`/`completedAt` se fijan en el mismo instante). Los estados
+`RUNNING`/`FAILED` de `SimulationStatus` y la cola BullMQ/Redis (ver
+[ARCHITECTURE.md](ARCHITECTURE.md)) quedan reservados para una futura
+migración a ejecución asíncrona si el volumen de iteraciones lo requiere, sin
+cambiar el contrato público (`PENDING`/`COMPLETED` ya cubren el flujo
+síncrono). El progreso por WebSocket (`simulation.progress`) también queda
+para esa fase futura.
 
 ## 5. Extensión futura: modelos ML (documentado, no implementado)
 

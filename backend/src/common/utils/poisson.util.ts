@@ -61,3 +61,24 @@ export function calculatePoissonOutcomeProbabilities(
     awayWinProbability: awayWinProbability / total,
   };
 }
+
+/**
+ * Muestrea un numero de goles de una distribucion de Poisson de media
+ * `lambda` usando el algoritmo de Knuth. `random` es inyectable para tests
+ * deterministas (debe devolver valores en `[0, 1)`, como `Math.random`).
+ */
+export function samplePoissonGoals(
+  lambda: number,
+  random: () => number = Math.random,
+): number {
+  const limit = Math.exp(-lambda);
+  let k = 0;
+  let p = 1;
+
+  do {
+    k++;
+    p *= random();
+  } while (p > limit);
+
+  return k - 1;
+}

@@ -2,7 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Exclude, Expose } from 'class-transformer';
 
 @Exclude()
-export class StandingsTeamDto {
+export class TeamSummaryDto {
   @Expose()
   @ApiProperty()
   id: string;

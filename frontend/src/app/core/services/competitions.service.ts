@@ -5,6 +5,7 @@ import { environment } from '../../../environments/environment';
 import {
   Competition,
   CompetitionQuery,
+  CompetitionTeam,
   CreateCompetitionRequest,
   PaginatedResponse,
   StandingsGroup,
@@ -34,6 +35,10 @@ export class CompetitionsService {
 
   getStandings(id: string): Observable<StandingsGroup[]> {
     return this.http.get<StandingsGroup[]>(`${this.baseUrl}/${id}/standings`);
+  }
+
+  getTeams(id: string): Observable<CompetitionTeam[]> {
+    return this.http.get<CompetitionTeam[]>(`${this.baseUrl}/${id}/teams`);
   }
 
   create(dto: CreateCompetitionRequest): Observable<Competition> {

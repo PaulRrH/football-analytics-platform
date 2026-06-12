@@ -50,7 +50,13 @@ export interface StandingsTeamInfo {
 export interface CompetitionTeamWithTeam {
   teamId: string;
   groupName: string | null;
+  seed?: number | null;
   team: StandingsTeamInfo;
+}
+
+export interface UpsertCompetitionTeamData {
+  groupName?: string | null;
+  seed?: number | null;
 }
 
 export interface FinishedMatchResult {
@@ -75,4 +81,10 @@ export interface ICompetitionRepository {
   delete(id: string): Promise<void>;
   findTeams(competitionId: string): Promise<CompetitionTeamWithTeam[]>;
   findFinishedMatches(competitionId: string): Promise<FinishedMatchResult[]>;
+  upsertTeam(
+    competitionId: string,
+    teamId: string,
+    data: UpsertCompetitionTeamData,
+  ): Promise<CompetitionTeamWithTeam>;
+  removeTeam(competitionId: string, teamId: string): Promise<void>;
 }
