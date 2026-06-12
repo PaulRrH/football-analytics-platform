@@ -1,13 +1,22 @@
 import { Injectable } from '@nestjs/common';
-import { Competition, Prisma } from '@prisma/client';
+import { Competition, MatchStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../../infrastructure/prisma/prisma.service';
 import {
+  CompetitionTeamWithTeam,
   CountCompetitionsParams,
   CreateCompetitionData,
   FindAllCompetitionsParams,
+  FinishedMatchResult,
   ICompetitionRepository,
   UpdateCompetitionData,
 } from '../../domain/competition-repository.interface';
+
+const TEAM_INFO_SELECT = {
+  id: true,
+  name: true,
+  shortName: true,
+  logoUrl: true,
+} satisfies Prisma.TeamSelect;
 
 @Injectable()
 export class PrismaCompetitionRepository implements ICompetitionRepository {
@@ -40,6 +49,45 @@ export class PrismaCompetitionRepository implements ICompetitionRepository {
 
   async delete(id: string): Promise<void> {
     await this.prisma.competition.delete({ where: { id } });
+  }
+
+  findTeams(competitionId: string): Promise<CompetitionTeamWithTeam[]> {
+    return this.prisma.competitionTeam.findMany({
+      where: { competitionId },
+      select: {
+        teamId: true,
+        groupName: true,
+        team: { select: TEAM_INFO_SELECT },
+      },
+      orderBy: [{ groupName: 'asc' }, { seed: 'asc' }],
+    });
+  }
+
+  async findFinishedMatches(
+    competitionId: string,
+  ): Promise<FinishedMatchResult[]> {
+    const matches = await this.prisma.match.findMany({
+      where: {
+        competitionId,
+        status: MatchStatus.FINISHED,
+        homeGoals: { not: null },
+        awayGoals: { not: null },
+      },
+      select: {
+        homeTeamId: true,
+        awayTeamId: true,
+        homeGoals: true,
+        awayGoals: true,
+        homeTeam: { select: TEAM_INFO_SELECT },
+        awayTeam: { select: TEAM_INFO_SELECT },
+      },
+    });
+
+    return matches.map((match) => ({
+      ...match,
+      homeGoals: match.homeGoals as number,
+      awayGoals: match.awayGoals as number,
+    }));
   }
 
   private buildWhere(

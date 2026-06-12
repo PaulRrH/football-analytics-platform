@@ -59,6 +59,13 @@ export const routes: Routes = [
                 (m) => m.CompetitionForm,
               ),
           },
+          {
+            path: ':id',
+            loadComponent: () =>
+              import('./features/competitions/competition-detail/competition-detail').then(
+                (m) => m.CompetitionDetail,
+              ),
+          },
         ],
       },
       {

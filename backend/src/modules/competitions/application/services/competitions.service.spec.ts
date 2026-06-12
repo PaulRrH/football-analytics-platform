@@ -35,6 +35,8 @@ describe('CompetitionsService', () => {
       create: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+      findTeams: jest.fn(),
+      findFinishedMatches: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -175,6 +177,135 @@ describe('CompetitionsService', () => {
         NotFoundException,
       );
       expect(repository.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getStandings', () => {
+    const argentina = {
+      id: 'team-arg',
+      name: 'Argentina',
+      shortName: 'ARG',
+      logoUrl: null,
+    };
+    const brasil = {
+      id: 'team-bra',
+      name: 'Brasil',
+      shortName: 'BRA',
+      logoUrl: null,
+    };
+    const francia = {
+      id: 'team-fra',
+      name: 'Francia',
+      shortName: 'FRA',
+      logoUrl: null,
+    };
+
+    it('lanza NotFoundException cuando la competicion no existe', async () => {
+      repository.findById.mockResolvedValue(null);
+
+      await expect(service.getStandings('missing')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+
+    it('calcula la tabla por grupos usando CompetitionTeam', async () => {
+      repository.findById.mockResolvedValue(competition);
+      repository.findTeams.mockResolvedValue([
+        { teamId: argentina.id, groupName: 'Grupo A', team: argentina },
+        { teamId: brasil.id, groupName: 'Grupo A', team: brasil },
+        { teamId: francia.id, groupName: 'Grupo B', team: francia },
+      ]);
+      repository.findFinishedMatches.mockResolvedValue([
+        {
+          homeTeamId: argentina.id,
+          awayTeamId: brasil.id,
+          homeGoals: 2,
+          awayGoals: 1,
+          homeTeam: argentina,
+          awayTeam: brasil,
+        },
+      ]);
+
+      const result = await service.getStandings(competition.id);
+
+      expect(result).toHaveLength(2);
+
+      const groupA = result.find((g) => g.groupName === 'Grupo A');
+      expect(groupA?.standings[0]).toMatchObject({
+        team: { id: argentina.id },
+        played: 1,
+        won: 1,
+        drawn: 0,
+        lost: 0,
+        goalsFor: 2,
+        goalsAgainst: 1,
+        goalDifference: 1,
+        points: 3,
+      });
+      expect(groupA?.standings[1]).toMatchObject({
+        team: { id: brasil.id },
+        played: 1,
+        won: 0,
+        drawn: 0,
+        lost: 1,
+        goalsFor: 1,
+        goalsAgainst: 2,
+        goalDifference: -1,
+        points: 0,
+      });
+
+      const groupB = result.find((g) => g.groupName === 'Grupo B');
+      expect(groupB?.standings[0]).toMatchObject({
+        team: { id: francia.id },
+        played: 0,
+        points: 0,
+      });
+    });
+
+    it('genera una tabla general cuando no hay equipos registrados', async () => {
+      repository.findById.mockResolvedValue(competition);
+      repository.findTeams.mockResolvedValue([]);
+      repository.findFinishedMatches.mockResolvedValue([
+        {
+          homeTeamId: argentina.id,
+          awayTeamId: brasil.id,
+          homeGoals: 2,
+          awayGoals: 1,
+          homeTeam: argentina,
+          awayTeam: brasil,
+        },
+        {
+          homeTeamId: brasil.id,
+          awayTeamId: francia.id,
+          homeGoals: 0,
+          awayGoals: 0,
+          homeTeam: brasil,
+          awayTeam: francia,
+        },
+      ]);
+
+      const result = await service.getStandings(competition.id);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].groupName).toBeNull();
+      expect(result[0].standings.map((row) => row.team.id)).toEqual([
+        argentina.id,
+        francia.id,
+        brasil.id,
+      ]);
+      expect(result[0].standings[0].points).toBe(3);
+      expect(result[0].standings[1].points).toBe(1);
+      expect(result[0].standings[2].points).toBe(1);
+    });
+
+    it('retorna un array vacio cuando no hay equipos ni partidos finalizados', async () => {
+      repository.findById.mockResolvedValue(competition);
+      repository.findTeams.mockResolvedValue([]);
+      repository.findFinishedMatches.mockResolvedValue([]);
+
+      const result = await service.getStandings(competition.id);
+
+      expect(result).toEqual([]);
     });
   });
 });

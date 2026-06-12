@@ -90,6 +90,10 @@ export class CompetitionList implements OnInit {
     this.loadCompetitions();
   }
 
+  openDetail(competition: Competition): void {
+    void this.router.navigate(['/competitions', competition.id]);
+  }
+
   editCompetition(competition: Competition, event: Event): void {
     event.stopPropagation();
     void this.router.navigate(['/competitions', competition.id, 'edit']);

@@ -40,6 +40,28 @@ export interface CountCompetitionsParams {
   search?: string;
 }
 
+export interface StandingsTeamInfo {
+  id: string;
+  name: string;
+  shortName: string;
+  logoUrl: string | null;
+}
+
+export interface CompetitionTeamWithTeam {
+  teamId: string;
+  groupName: string | null;
+  team: StandingsTeamInfo;
+}
+
+export interface FinishedMatchResult {
+  homeTeamId: string;
+  awayTeamId: string;
+  homeGoals: number;
+  awayGoals: number;
+  homeTeam: StandingsTeamInfo;
+  awayTeam: StandingsTeamInfo;
+}
+
 /**
  * Puerto (Repository pattern) para el agregado Competition.
  * La implementacion concreta vive en infrastructure/repositories.
@@ -51,4 +73,6 @@ export interface ICompetitionRepository {
   create(data: CreateCompetitionData): Promise<Competition>;
   update(id: string, data: UpdateCompetitionData): Promise<Competition>;
   delete(id: string): Promise<void>;
+  findTeams(competitionId: string): Promise<CompetitionTeamWithTeam[]>;
+  findFinishedMatches(competitionId: string): Promise<FinishedMatchResult[]>;
 }

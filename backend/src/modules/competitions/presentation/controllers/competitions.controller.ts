@@ -14,6 +14,7 @@ import { PaginatedResponseDto } from '../../../../common/dto/paginated-response.
 import { CompetitionResponseDto } from '../../application/dto/competition-response.dto';
 import { CreateCompetitionDto } from '../../application/dto/create-competition.dto';
 import { QueryCompetitionsDto } from '../../application/dto/query-competitions.dto';
+import { StandingsGroupDto } from '../../application/dto/standings-group.dto';
 import { UpdateCompetitionDto } from '../../application/dto/update-competition.dto';
 import { CompetitionsService } from '../../application/services/competitions.service';
 
@@ -39,6 +40,16 @@ export class CompetitionsController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<CompetitionResponseDto> {
     return this.competitionsService.findOne(id);
+  }
+
+  @Get(':id/standings')
+  @ApiOperation({
+    summary: 'Obtener la tabla de posiciones de una competicion',
+  })
+  getStandings(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<StandingsGroupDto[]> {
+    return this.competitionsService.getStandings(id);
   }
 
   @Post()

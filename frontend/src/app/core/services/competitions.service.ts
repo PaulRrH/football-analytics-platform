@@ -7,6 +7,7 @@ import {
   CompetitionQuery,
   CreateCompetitionRequest,
   PaginatedResponse,
+  StandingsGroup,
   UpdateCompetitionRequest,
 } from '../models';
 
@@ -29,6 +30,10 @@ export class CompetitionsService {
 
   findOne(id: string): Observable<Competition> {
     return this.http.get<Competition>(`${this.baseUrl}/${id}`);
+  }
+
+  getStandings(id: string): Observable<StandingsGroup[]> {
+    return this.http.get<StandingsGroup[]>(`${this.baseUrl}/${id}/standings`);
   }
 
   create(dto: CreateCompetitionRequest): Observable<Competition> {

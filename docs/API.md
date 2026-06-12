@@ -31,9 +31,25 @@ Convenciones:
 |---|---|---|
 | GET | `/competitions` | Listado paginado. Filtros: `type`, `status`, `season`, `search` (nombre, case-insensitive). |
 | GET | `/competitions/:id` | Detalle de una competición. |
+| GET | `/competitions/:id/standings` | Tabla(s) de posiciones de una competición. |
 | POST | `/competitions` | Crear competición (valida `startDate < endDate`). |
 | PATCH | `/competitions/:id` | Actualizar competición (re-valida el rango de fechas si cambian). |
 | DELETE | `/competitions/:id` | Eliminar competición. |
+
+`GET /competitions/:id/standings` devuelve un array de grupos
+(`{ groupName, standings[] }`):
+
+- Si la competición tiene equipos inscritos (`CompetitionTeam`), devuelve una
+  tabla por cada `groupName`, inicializada en cero para los equipos
+  inscritos y actualizada con los partidos `FINISHED` cuyo local y visitante
+  pertenezcan al mismo grupo.
+- Si no hay equipos inscritos, devuelve una única tabla general
+  (`groupName: null`) calculada solo a partir de los partidos `FINISHED`,
+  descubriendo los equipos participantes en esos partidos.
+- Cada fila (`standings[]`) incluye `team` (`id`, `name`, `shortName`,
+  `logoUrl`), `played`, `won`, `drawn`, `lost`, `goalsFor`, `goalsAgainst`,
+  `goalDifference` y `points` (victoria = 3, empate = 1), ordenadas por
+  puntos, diferencia de gol, goles a favor y nombre.
 
 ### Matches (`/api/v1/matches`)
 
@@ -56,7 +72,6 @@ Convenciones:
 
 | Fase | Endpoints | Descripción |
 |---|---|---|
-| 2 | `GET /competitions/:id/standings` | Tabla de posiciones de una competición |
 | 2 | `GET /stats/teams/:id`, `GET /stats/head-to-head?teamA=&teamB=` | Motor estadístico: forma reciente, enfrentamientos directos |
 | 3 | `GET /predictions/matches/:id`, `POST /predictions/matches/:id/generate` | Predicción Elo + Poisson para un partido |
 | 4 | `POST /simulations`, `GET /simulations/:id`, `GET /simulations/:id/results[/teams/:teamId]` | Simulación Monte Carlo de torneo (async, BullMQ) |

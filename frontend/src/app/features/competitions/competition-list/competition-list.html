@@ -106,7 +106,7 @@
             mat-row
             *matRowDef="let row; columns: displayedColumns"
             class="competition-list__row"
-            (click)="editCompetition(row, $event)"
+            (click)="openDetail(row)"
           ></tr>
         </table>
 

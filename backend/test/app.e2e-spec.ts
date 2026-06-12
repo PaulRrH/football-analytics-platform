@@ -109,4 +109,26 @@ describe('App (e2e)', () => {
         expect(res.body.id).toBeDefined();
       });
   });
+
+  it('GET /competitions/:id/standings -> 200 tabla de posiciones', async () => {
+    const createRes = await request(app.getHttpServer())
+      .post(`/${apiPrefix}/competitions`)
+      .send({
+        name: 'Test Standings Cup E2E',
+        type: 'FRIENDLY',
+        season: '2026',
+        startDate: '2026-02-01',
+        endDate: '2026-02-28',
+      })
+      .expect(201);
+
+    const competitionId = createRes.body.id as string;
+
+    await request(app.getHttpServer())
+      .get(`/${apiPrefix}/competitions/${competitionId}/standings`)
+      .expect(200)
+      .expect((res) => {
+        expect(Array.isArray(res.body)).toBe(true);
+      });
+  });
 });

@@ -30,3 +30,27 @@ export interface CreateCompetitionRequest {
 }
 
 export type UpdateCompetitionRequest = Partial<CreateCompetitionRequest>;
+
+export interface StandingsTeam {
+  id: string;
+  name: string;
+  shortName: string;
+  logoUrl: string | null;
+}
+
+export interface StandingsRow {
+  team: StandingsTeam;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDifference: number;
+  points: number;
+}
+
+export interface StandingsGroup {
+  groupName: string | null;
+  standings: StandingsRow[];
+}

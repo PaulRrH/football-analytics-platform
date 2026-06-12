@@ -168,9 +168,8 @@ fases futuras (`predictions`, `simulations`, etc.).
 
 ## Roadmap (fases futuras)
 
-- **Fase 2**: tabla de posiciones (`standings`) del módulo `competitions`,
-  motor estadístico (`/stats/teams/:id`, head-to-head, tendencias), carga de
-  datos históricos reales.
+- **Fase 2**: motor estadístico (`/stats/teams/:id`, head-to-head,
+  tendencias), carga de datos históricos reales.
 - **Fase 3**: motor de predicción Elo+Poisson, módulo `predictions`,
   recálculo de Elo al finalizar partidos (domain event). Ver
   [PREDICTION_ENGINE.md](PREDICTION_ENGINE.md).
