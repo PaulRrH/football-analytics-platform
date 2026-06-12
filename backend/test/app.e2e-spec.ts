@@ -162,6 +162,329 @@ describe('App (e2e)', () => {
       });
   });
 
+  describe('Teams - detalle, actualizacion y eliminacion', () => {
+    let teamAId: string;
+    let teamBId: string;
+
+    beforeAll(async () => {
+      const teamARes = await request(app.getHttpServer())
+        .post(`/${apiPrefix}/teams`)
+        .send({
+          name: 'Test CRUD FC A',
+          shortName: 'TCA',
+          country: 'Test',
+          confederation: 'UEFA',
+        })
+        .expect(201);
+      teamAId = teamARes.body.id as string;
+
+      const teamBRes = await request(app.getHttpServer())
+        .post(`/${apiPrefix}/teams`)
+        .send({
+          name: 'Test CRUD FC B',
+          shortName: 'TCB',
+          country: 'Test',
+          confederation: 'UEFA',
+        })
+        .expect(201);
+      teamBId = teamBRes.body.id as string;
+    });
+
+    it('GET /teams/:id -> 200 detalle de un equipo', () => {
+      return request(app.getHttpServer())
+        .get(`/${apiPrefix}/teams/${teamAId}`)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.id).toBe(teamAId);
+          expect(res.body.name).toBe('Test CRUD FC A');
+        });
+    });
+
+    it('GET /teams/:id -> 404 si el equipo no existe', () => {
+      return request(app.getHttpServer())
+        .get(`/${apiPrefix}/teams/00000000-0000-0000-0000-000000000000`)
+        .expect(404);
+    });
+
+    it('GET /teams/:id/ranking-history -> 200 historial de ranking', () => {
+      return request(app.getHttpServer())
+        .get(`/${apiPrefix}/teams/${teamAId}/ranking-history`)
+        .expect(200)
+        .expect((res) => {
+          expect(Array.isArray(res.body)).toBe(true);
+        });
+    });
+
+    it('PATCH /teams/:id -> 200 actualiza un equipo', () => {
+      return request(app.getHttpServer())
+        .patch(`/${apiPrefix}/teams/${teamAId}`)
+        .send({ fifaRanking: 5 })
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.id).toBe(teamAId);
+          expect(res.body.fifaRanking).toBe(5);
+        });
+    });
+
+    it('PATCH /teams/:id -> 409 si el nombre ya esta en uso', () => {
+      return request(app.getHttpServer())
+        .patch(`/${apiPrefix}/teams/${teamAId}`)
+        .send({ name: 'Test CRUD FC B' })
+        .expect(409);
+    });
+
+    it('PATCH /teams/:id -> 404 si el equipo no existe', () => {
+      return request(app.getHttpServer())
+        .patch(`/${apiPrefix}/teams/00000000-0000-0000-0000-000000000000`)
+        .send({ fifaRanking: 1 })
+        .expect(404);
+    });
+
+    it('DELETE /teams/:id -> 200 elimina un equipo', async () => {
+      await request(app.getHttpServer())
+        .delete(`/${apiPrefix}/teams/${teamBId}`)
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .get(`/${apiPrefix}/teams/${teamBId}`)
+        .expect(404);
+    });
+
+    it('DELETE /teams/:id -> 404 si el equipo no existe', () => {
+      return request(app.getHttpServer())
+        .delete(`/${apiPrefix}/teams/00000000-0000-0000-0000-000000000000`)
+        .expect(404);
+    });
+  });
+
+  describe('Matches - detalle, estadisticas, actualizacion y eliminacion', () => {
+    let homeTeamId: string;
+    let thirdTeamId: string;
+    let matchId: string;
+
+    beforeAll(async () => {
+      const homeRes = await request(app.getHttpServer())
+        .post(`/${apiPrefix}/teams`)
+        .send({
+          name: 'Test CRUD Match FC Home',
+          shortName: 'TMH',
+          country: 'Test',
+          confederation: 'UEFA',
+        })
+        .expect(201);
+      homeTeamId = homeRes.body.id as string;
+
+      const awayRes = await request(app.getHttpServer())
+        .post(`/${apiPrefix}/teams`)
+        .send({
+          name: 'Test CRUD Match FC Away',
+          shortName: 'TMA',
+          country: 'Test',
+          confederation: 'UEFA',
+        })
+        .expect(201);
+      const awayTeamId = awayRes.body.id as string;
+
+      const thirdRes = await request(app.getHttpServer())
+        .post(`/${apiPrefix}/teams`)
+        .send({
+          name: 'Test CRUD Match FC Third',
+          shortName: 'TMT',
+          country: 'Test',
+          confederation: 'UEFA',
+        })
+        .expect(201);
+      thirdTeamId = thirdRes.body.id as string;
+
+      const competitionRes = await request(app.getHttpServer())
+        .post(`/${apiPrefix}/competitions`)
+        .send({
+          name: 'Test CRUD Match Cup E2E',
+          type: 'FRIENDLY',
+          season: '2026',
+          startDate: '2026-04-01',
+          endDate: '2026-04-30',
+        })
+        .expect(201);
+      const competitionId = competitionRes.body.id as string;
+
+      const matchRes = await request(app.getHttpServer())
+        .post(`/${apiPrefix}/matches`)
+        .send({
+          competitionId,
+          homeTeamId,
+          awayTeamId,
+          matchDate: '2026-04-10T18:00:00.000Z',
+          stage: 'FRIENDLY',
+        })
+        .expect(201);
+      matchId = matchRes.body.id as string;
+    });
+
+    it('GET /matches/:id -> 200 detalle de un partido', () => {
+      return request(app.getHttpServer())
+        .get(`/${apiPrefix}/matches/${matchId}`)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.id).toBe(matchId);
+          expect(Array.isArray(res.body.statistics)).toBe(true);
+        });
+    });
+
+    it('GET /matches/:id -> 404 si el partido no existe', () => {
+      return request(app.getHttpServer())
+        .get(`/${apiPrefix}/matches/00000000-0000-0000-0000-000000000000`)
+        .expect(404);
+    });
+
+    it('PUT /matches/:id/statistics -> 200 upsert de estadisticas', () => {
+      return request(app.getHttpServer())
+        .put(`/${apiPrefix}/matches/${matchId}/statistics`)
+        .send({ teamId: homeTeamId, possession: 58.4, shotsTotal: 12 })
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.teamId).toBe(homeTeamId);
+          expect(res.body.possession).toBe(58.4);
+        });
+    });
+
+    it('PUT /matches/:id/statistics -> 400 si el equipo no participa en el partido', () => {
+      return request(app.getHttpServer())
+        .put(`/${apiPrefix}/matches/${matchId}/statistics`)
+        .send({ teamId: thirdTeamId, possession: 41.6 })
+        .expect(400);
+    });
+
+    it('PUT /matches/:id/statistics -> 404 si el partido no existe', () => {
+      return request(app.getHttpServer())
+        .put(
+          `/${apiPrefix}/matches/00000000-0000-0000-0000-000000000000/statistics`,
+        )
+        .send({ teamId: homeTeamId, possession: 50 })
+        .expect(404);
+    });
+
+    it('PATCH /matches/:id -> 200 actualiza un partido', () => {
+      return request(app.getHttpServer())
+        .patch(`/${apiPrefix}/matches/${matchId}`)
+        .send({ venue: 'Estadio Test E2E', round: 'Jornada 1' })
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.venue).toBe('Estadio Test E2E');
+          expect(res.body.round).toBe('Jornada 1');
+        });
+    });
+
+    it('PATCH /matches/:id -> 400 si local y visitante quedan iguales', () => {
+      return request(app.getHttpServer())
+        .patch(`/${apiPrefix}/matches/${matchId}`)
+        .send({ awayTeamId: homeTeamId })
+        .expect(400);
+    });
+
+    it('PATCH /matches/:id -> 404 si el partido no existe', () => {
+      return request(app.getHttpServer())
+        .patch(`/${apiPrefix}/matches/00000000-0000-0000-0000-000000000000`)
+        .send({ venue: 'Otro estadio' })
+        .expect(404);
+    });
+
+    it('DELETE /matches/:id -> 200 elimina un partido', async () => {
+      await request(app.getHttpServer())
+        .delete(`/${apiPrefix}/matches/${matchId}`)
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .get(`/${apiPrefix}/matches/${matchId}`)
+        .expect(404);
+    });
+
+    it('DELETE /matches/:id -> 404 si el partido no existe', () => {
+      return request(app.getHttpServer())
+        .delete(`/${apiPrefix}/matches/00000000-0000-0000-0000-000000000000`)
+        .expect(404);
+    });
+  });
+
+  describe('Competitions - detalle, actualizacion y eliminacion', () => {
+    let competitionId: string;
+
+    beforeAll(async () => {
+      const competitionRes = await request(app.getHttpServer())
+        .post(`/${apiPrefix}/competitions`)
+        .send({
+          name: 'Test CRUD Cup E2E',
+          type: 'FRIENDLY',
+          season: '2026',
+          startDate: '2026-06-01',
+          endDate: '2026-06-30',
+        })
+        .expect(201);
+      competitionId = competitionRes.body.id as string;
+    });
+
+    it('GET /competitions/:id -> 200 detalle de una competicion', () => {
+      return request(app.getHttpServer())
+        .get(`/${apiPrefix}/competitions/${competitionId}`)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.id).toBe(competitionId);
+          expect(res.body.name).toBe('Test CRUD Cup E2E');
+        });
+    });
+
+    it('GET /competitions/:id -> 404 si la competicion no existe', () => {
+      return request(app.getHttpServer())
+        .get(`/${apiPrefix}/competitions/00000000-0000-0000-0000-000000000000`)
+        .expect(404);
+    });
+
+    it('PATCH /competitions/:id -> 200 actualiza una competicion', () => {
+      return request(app.getHttpServer())
+        .patch(`/${apiPrefix}/competitions/${competitionId}`)
+        .send({ name: 'Test CRUD Cup E2E (actualizada)', status: 'ONGOING' })
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.name).toBe('Test CRUD Cup E2E (actualizada)');
+          expect(res.body.status).toBe('ONGOING');
+        });
+    });
+
+    it('PATCH /competitions/:id -> 400 si la fecha de fin es anterior a la de inicio', () => {
+      return request(app.getHttpServer())
+        .patch(`/${apiPrefix}/competitions/${competitionId}`)
+        .send({ endDate: '2026-01-01' })
+        .expect(400);
+    });
+
+    it('PATCH /competitions/:id -> 404 si la competicion no existe', () => {
+      return request(app.getHttpServer())
+        .patch(
+          `/${apiPrefix}/competitions/00000000-0000-0000-0000-000000000000`,
+        )
+        .send({ name: 'No existe' })
+        .expect(404);
+    });
+
+    it('DELETE /competitions/:id -> 200 elimina una competicion', async () => {
+      await request(app.getHttpServer())
+        .delete(`/${apiPrefix}/competitions/${competitionId}`)
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .get(`/${apiPrefix}/competitions/${competitionId}`)
+        .expect(404);
+    });
+
+    it('DELETE /competitions/:id -> 404 si la competicion no existe', () => {
+      return request(app.getHttpServer())
+        .delete(
+          `/${apiPrefix}/competitions/00000000-0000-0000-0000-000000000000`,
+        )
+        .expect(404);
+    });
+  });
+
   describe('Stats', () => {
     let teamAId: string;
     let teamBId: string;

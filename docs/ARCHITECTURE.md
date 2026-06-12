@@ -198,6 +198,22 @@ estructura.
 - `.github/workflows/ci.yml`: jobs paralelos `backend` (lint, prisma
   generate, jest unit + e2e con servicio postgres, build) y `frontend`
   (lint, unit tests, build).
+- **Despliegue (Fase 8)**: `frontend/vercel.json` (build `npm run build`,
+  `outputDirectory: dist/frontend/browser`, framework `angular`, rewrite SPA
+  `/(.*) -> /index.html`, equivalente al `try_files` de `nginx.conf`) y
+  `backend/railway.toml` (build con el `Dockerfile` existente, `startCommand:
+  node dist/main.js`, healthcheck `/api/v1/health`, `releaseCommand: npx
+  prisma db push --skip-generate` para mantener el esquema sincronizado en
+  cada deploy). Dos jobs adicionales en `ci.yml`, `deploy-frontend` y
+  `deploy-backend`, corren solo en `push` a `master` tras `frontend`/`backend`
+  respectivamente: hacen `checkout` y, si existen los secrets
+  correspondientes (`VERCEL_TOKEN`/`VERCEL_ORG_ID`/`VERCEL_PROJECT_ID` para
+  Vercel, `RAILWAY_TOKEN` para Railway), despliegan a producción. El paso de
+  despliegue usa un `if` a nivel de step sobre `secrets.X != ''`; sin esos
+  secrets configurados en el repositorio (caso por defecto), el paso queda
+  *skipped* y el job termina en verde — no rompe CI. Ver "Despliegue" en
+  [README.md](../README.md) para el alta manual de los proyectos en
+  Vercel/Railway y la creación de los secrets.
 
 ## 7. Estrategia de escalabilidad
 
@@ -205,6 +221,25 @@ estructura.
   para `Match`/`MatchStatistic` por temporada cuando el volumen lo requiera;
   pool de conexiones (PgBouncer) y réplicas de lectura para
   dashboard/analítica.
+  - **Particionado (diferido)**: con ~2500 partidos (ver
+    [DATABASE.md](DATABASE.md)) no es necesario hoy. Diseño previsto cuando el
+    volumen alcance el orden de decenas/cientos de miles de filas:
+    convertir `matches` y `match_statistics` en tablas particionadas por
+    rango (`PARTITION BY RANGE`) sobre `matchDate`, con una partición por
+    temporada/año (`matches_2026`, `matches_2027`, ...). Como el flujo actual
+    usa `prisma db push` (sin migraciones formales), esto requeriría una
+    migración SQL nativa puntual (`prisma migrate` con SQL crudo) para
+    recrear las tablas como particionadas y migrar los datos existentes;
+    las particiones nuevas se crearían por adelantado (cron o script de
+    mantenimiento) antes de que empiece cada temporada.
+  - **Réplicas de lectura (diferido)**: variable de entorno opcional
+    `DATABASE_REPLICA_URL`. Cuando esté configurada, un segundo
+    `PrismaClient` (p. ej. `PrismaReadService`, mismo patrón que
+    `PrismaService`) apuntaría a la réplica y sería inyectado en los
+    repositorios de lectura más pesados (`dashboard`, `stats`). Si la
+    variable no está configurada, `PrismaReadService` reutiliza la conexión
+    primaria (mismo enfoque Null-Object que `NullSportsDataProvider`, Fase
+    7) — sin cambios de comportamiento hasta que exista una réplica real.
 - **Cache**: Redis para rankings, agregados de dashboard y resultados de
   predicción (TTL + invalidación al actualizar datos) — futuro.
 - **Cómputo pesado asíncrono**: BullMQ + Redis para Monte Carlo y recálculo
@@ -220,7 +255,13 @@ estructura.
 - **Observabilidad**: logging JSON (Pino) con duración por request, `/health`
   con verificación de base de datos.
 
-## Roadmap (fases futuras)
+## Roadmap
 
-- **Fase 8**: Hardening (cobertura e2e completa, particionado real, réplicas
-  de lectura, configuración de despliegue Vercel/Railway en CI/CD).
+- **Fase 8 (cerrada)**: Hardening. Cobertura e2e completa de las operaciones
+  CRUD de `teams`/`matches`/`competitions` (detalle, actualización,
+  eliminación, casos de error 400/404/409) y configuración de despliegue
+  Vercel/Railway en CI/CD (ver §6). El particionado real de
+  `matches`/`match_statistics` y las réplicas de lectura quedan diseñados y
+  diferidos (ver §7) hasta que el volumen de datos lo justifique.
+
+No quedan fases pendientes sin diseño documentado.

@@ -99,6 +99,59 @@ cd backend && npm run lint && npm run build && npm run test
 cd frontend && npm run lint && npm run build && npm run test
 ```
 
+## Despliegue
+
+Cada proyecto se despliega de forma independiente: el backend en Railway (o
+Render) y el frontend en Vercel.
+
+### 1. Backend (Railway)
+
+1. Crea un proyecto nuevo en Railway y añade un plugin de **PostgreSQL**.
+2. Añade un servicio desde este repositorio con *root directory* = `backend`
+   (usa `backend/Dockerfile`; `backend/railway.toml` ya define
+   `startCommand`, `healthcheckPath: /api/v1/health` y un `releaseCommand`
+   que ejecuta `npx prisma db push --skip-generate` en cada deploy).
+3. Configura las variables de entorno del servicio:
+   - `DATABASE_URL`: la que provee el plugin de PostgreSQL.
+   - `JWT_SECRET`: un secreto fuerte (login admin, Fase 6).
+   - `CORS_ORIGIN`: el dominio del frontend (se actualiza en el paso 3 de
+     abajo).
+   - `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`: credenciales del usuario
+     `ADMIN` inicial (cambiar los valores de desarrollo).
+   - `API_PREFIX` (opcional, default `api/v1`).
+   - `FOOTBALL_DATA_API_KEY` (opcional, Fase 7 - sincronización externa).
+4. Tras el primer deploy, carga los datos semilla una vez:
+   ```bash
+   railway run npm run seed
+   ```
+
+### 2. Frontend (Vercel)
+
+1. Crea un proyecto nuevo en Vercel apuntando a este repositorio con *root
+   directory* = `frontend` (`frontend/vercel.json` ya define el comando de
+   build, el directorio de salida y el rewrite SPA).
+2. Antes de desplegar, actualiza `frontend/src/environments/environment.ts`
+   (`apiUrl`/`wsUrl`) con la URL pública del backend de Railway del paso
+   anterior.
+
+### 3. Actualizar CORS
+
+Una vez Vercel asigna el dominio definitivo del frontend, actualiza la
+variable `CORS_ORIGIN` del servicio backend en Railway con ese dominio.
+
+### 4. CI/CD automático (opcional)
+
+Para que `deploy-frontend`/`deploy-backend` en `.github/workflows/ci.yml`
+desplieguen automáticamente en cada push a `master`, añade en GitHub
+(`Settings > Secrets and variables > Actions`) los secrets:
+
+- `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` (proyecto de Vercel).
+- `RAILWAY_TOKEN` (proyecto de Railway).
+
+Sin estos secrets, ambos jobs corren igualmente pero el paso de despliegue
+queda *skipped* (job en verde, sin efecto) — ver §6 de
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
 ## Roadmap
 
 Esta primera fase entrega la arquitectura completa, el esquema de base de
@@ -106,4 +159,4 @@ datos íntegro y tres módulos de referencia end-to-end (`teams`, `matches` y
 `competitions`) que sirven de plantilla para el resto de módulos. Las fases
 siguientes (motor estadístico, motor de predicción, simulaciones Monte Carlo,
 dashboard en tiempo real y panel de administración) están descritas en
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#roadmap-fases-futuras).
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#roadmap).
