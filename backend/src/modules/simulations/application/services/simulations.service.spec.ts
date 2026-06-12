@@ -1,6 +1,8 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import { SimulationStatus } from '@prisma/client';
+import { SIMULATION_PROGRESS_EVENT } from '../../../realtime/domain/realtime-events';
 import {
   ISimulationRepository,
   SIMULATION_REPOSITORY,
@@ -12,6 +14,7 @@ import { SimulationsService } from './simulations.service';
 describe('SimulationsService', () => {
   let service: SimulationsService;
   let repository: jest.Mocked<ISimulationRepository>;
+  let eventEmitter: jest.Mocked<EventEmitter2>;
 
   const buildSimulation = (
     overrides: Partial<TournamentSimulationWithResults> = {},
@@ -38,10 +41,13 @@ describe('SimulationsService', () => {
       findTeamResult: jest.fn(),
     };
 
+    eventEmitter = { emit: jest.fn() } as unknown as jest.Mocked<EventEmitter2>;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SimulationsService,
         { provide: SIMULATION_REPOSITORY, useValue: repository },
+        { provide: EventEmitter2, useValue: eventEmitter },
       ],
     }).compile();
 
@@ -135,6 +141,16 @@ describe('SimulationsService', () => {
       expect(response.id).toBe('sim-1');
       expect(response.status).toBe(SimulationStatus.COMPLETED);
       expect(response.teamResults).toHaveLength(4);
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        SIMULATION_PROGRESS_EVENT,
+        {
+          simulationId: 'sim-1',
+          competitionId: 'comp-1',
+          status: 'COMPLETED',
+          progress: 100,
+        },
+      );
     });
 
     it('usa DEFAULT_ITERATIONS cuando no se especifican iteraciones', async () => {

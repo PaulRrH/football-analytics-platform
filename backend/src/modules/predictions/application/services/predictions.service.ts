@@ -1,7 +1,9 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Prediction } from '@prisma/client';
 import { plainToInstance } from 'class-transformer';
 import { PredictionModel } from '../../../../common/enums/prediction-model.enum';
+import { PREDICTION_UPDATED_EVENT } from '../../../realtime/domain/realtime-events';
 import {
   type IPredictionRepository,
   type MatchEloContext,
@@ -19,6 +21,7 @@ export class PredictionsService {
   constructor(
     @Inject(PREDICTION_REPOSITORY)
     private readonly predictionRepository: IPredictionRepository,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async getMatchPredictions(matchId: string): Promise<PredictionResponseDto[]> {
@@ -62,7 +65,13 @@ export class PredictionsService {
       { matchId, model: PredictionModel.ENSEMBLE, ...ensemblePrediction },
     ]);
 
-    return created.map((prediction) => this.toDto(prediction));
+    const dtos = created.map((prediction) => this.toDto(prediction));
+    this.eventEmitter.emit(PREDICTION_UPDATED_EVENT, {
+      matchId,
+      predictions: dtos,
+    });
+
+    return dtos;
   }
 
   private dedupeByModel(predictions: Prediction[]): Prediction[] {

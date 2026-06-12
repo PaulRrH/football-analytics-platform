@@ -8,9 +8,114 @@
     justify-content: center;
     padding: 2rem;
   }
+
+  &__empty {
+    text-align: center;
+    color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+    padding: 1rem;
+  }
+
+  &__totals {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+
+    mat-card-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 1rem;
+    }
+  }
+
+  &__total-value {
+    font-size: 2rem;
+    font-weight: 600;
+  }
+
+  &__total-label {
+    color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+  }
+
+  &__charts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1rem;
+  }
+
+  &__matches {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1rem;
+  }
+
+  &__match {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+  }
+
+  &__match-teams {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  &__match-date {
+    color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+    white-space: nowrap;
+  }
+
+  &__flag {
+    width: 24px;
+    height: 16px;
+    object-fit: cover;
+  }
+
+  &__table-wrapper {
+    overflow-x: auto;
+  }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+
+    th,
+    td {
+      padding: 0.5rem 0.75rem;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    th {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+      border-bottom: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.12));
+    }
+
+    td {
+      border-bottom: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.06));
+    }
+  }
+
+  &__team {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  &__activity-time {
+    color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+    margin-right: 0.75rem;
+    white-space: nowrap;
+  }
 }
 
 .error-message {
   color: var(--mat-sys-error, #b3261e);
-  margin: 0;
 }

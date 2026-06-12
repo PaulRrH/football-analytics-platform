@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
@@ -9,9 +10,11 @@ import configuration, { AppConfig } from './config/configuration';
 import { validateEnv } from './config/env.validation';
 import { PrismaModule } from './infrastructure/prisma/prisma.module';
 import { CompetitionsModule } from './modules/competitions/competitions.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { HealthModule } from './modules/health/health.module';
 import { MatchesModule } from './modules/matches/matches.module';
 import { PredictionsModule } from './modules/predictions/predictions.module';
+import { RealtimeModule } from './modules/realtime/realtime.module';
 import { SimulationsModule } from './modules/simulations/simulations.module';
 import { StatsModule } from './modules/stats/stats.module';
 import { TeamsModule } from './modules/teams/teams.module';
@@ -40,6 +43,7 @@ import { TeamsModule } from './modules/teams/teams.module';
       }),
     }),
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 100 }]),
+    EventEmitterModule.forRoot(),
     PrismaModule,
     TeamsModule,
     CompetitionsModule,
@@ -48,6 +52,8 @@ import { TeamsModule } from './modules/teams/teams.module';
     SimulationsModule,
     StatsModule,
     HealthModule,
+    RealtimeModule,
+    DashboardModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

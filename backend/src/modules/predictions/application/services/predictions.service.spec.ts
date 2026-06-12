@@ -1,6 +1,8 @@
 import { NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Prediction, PredictionModel } from '@prisma/client';
+import { PREDICTION_UPDATED_EVENT } from '../../../realtime/domain/realtime-events';
 import {
   IPredictionRepository,
   MatchEloContext,
@@ -11,6 +13,7 @@ import { PredictionsService } from './predictions.service';
 describe('PredictionsService', () => {
   let service: PredictionsService;
   let repository: jest.Mocked<IPredictionRepository>;
+  let eventEmitter: jest.Mocked<EventEmitter2>;
 
   const matchContext: MatchEloContext = {
     id: 'match-1',
@@ -42,10 +45,13 @@ describe('PredictionsService', () => {
       createMany: jest.fn(),
     };
 
+    eventEmitter = { emit: jest.fn() } as unknown as jest.Mocked<EventEmitter2>;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PredictionsService,
         { provide: PREDICTION_REPOSITORY, useValue: repository },
+        { provide: EventEmitter2, useValue: eventEmitter },
       ],
     }).compile();
 
@@ -138,6 +144,29 @@ describe('PredictionsService', () => {
       }
 
       expect(result).toHaveLength(3);
+    });
+
+    it('emite prediction.updated con el matchId y las predicciones generadas', async () => {
+      repository.findMatchEloContext.mockResolvedValue(matchContext);
+      repository.findLeagueAverageGoals.mockResolvedValue(1.35);
+      repository.findTeamGoalAverages.mockResolvedValue({
+        attackFor: 1,
+        attackAgainst: 1,
+      });
+      repository.createMany.mockImplementation((data) =>
+        Promise.resolve(
+          data.map((item, index) =>
+            buildPrediction({ id: `prediction-${index}`, ...item }),
+          ),
+        ),
+      );
+
+      const result = await service.generatePredictions(matchContext.id);
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith(PREDICTION_UPDATED_EVENT, {
+        matchId: matchContext.id,
+        predictions: result,
+      });
     });
   });
 });

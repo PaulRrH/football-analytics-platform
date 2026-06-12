@@ -1,6 +1,9 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
+import type { AddressInfo } from 'net';
+import type { Server } from 'http';
+import { io } from 'socket.io-client';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
@@ -9,6 +12,9 @@ import { AppConfig } from './../src/config/configuration';
 describe('App (e2e)', () => {
   let app: INestApplication<App>;
   let apiPrefix: string;
+  let wsBaseUrl: string;
+  let predictionsMatchId: string;
+  let simulationsCompetitionId: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -31,6 +37,11 @@ describe('App (e2e)', () => {
     app.setGlobalPrefix(apiPrefix);
 
     await app.init();
+    await app.listen(0);
+
+    const server = app.getHttpServer() as unknown as Server;
+    const { port } = server.address() as AddressInfo;
+    wsBaseUrl = `http://127.0.0.1:${port}/ws`;
   });
 
   afterAll(async () => {
@@ -243,6 +254,7 @@ describe('App (e2e)', () => {
         })
         .expect(201);
       matchId = matchRes.body.id as string;
+      predictionsMatchId = matchId;
     });
 
     it('GET /predictions/matches/:id -> 200 vacio si no hay predicciones generadas', () => {
@@ -484,6 +496,7 @@ describe('App (e2e)', () => {
         })
         .expect(201);
       competitionId = competitionRes.body.id as string;
+      simulationsCompetitionId = competitionId;
 
       teamIds = [];
       for (let i = 1; i <= 6; i++) {
@@ -655,5 +668,115 @@ describe('App (e2e)', () => {
         )
         .expect(404);
     });
+  });
+
+  describe('Dashboard', () => {
+    it('GET /dashboard/summary -> 200 resumen agregado de la plataforma', () => {
+      return request(app.getHttpServer())
+        .get(`/${apiPrefix}/dashboard/summary`)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.counts.teams).toBeGreaterThan(0);
+          expect(res.body.counts.matches).toBeGreaterThan(0);
+          expect(res.body.topTeams.length).toBeLessThanOrEqual(10);
+          expect(res.body.matchesByStatus).toEqual(
+            expect.objectContaining({
+              scheduled: expect.any(Number),
+              live: expect.any(Number),
+              finished: expect.any(Number),
+              postponed: expect.any(Number),
+              cancelled: expect.any(Number),
+            }),
+          );
+        });
+    });
+
+    it('GET /dashboard/rankings -> 200 ranking Elo paginado', () => {
+      return request(app.getHttpServer())
+        .get(`/${apiPrefix}/dashboard/rankings`)
+        .query({ page: 1, limit: 5 })
+        .expect(200)
+        .expect((res) => {
+          const { data } = res.body as {
+            data: Array<{ rank: number; eloRating: number }>;
+          };
+          expect(data).toHaveLength(5);
+          expect(data[0].rank).toBe(1);
+
+          for (let i = 1; i < data.length; i++) {
+            expect(data[i].eloRating).toBeLessThanOrEqual(
+              data[i - 1].eloRating,
+            );
+          }
+        });
+    });
+  });
+
+  describe('Realtime (WebSocket)', () => {
+    it('emite prediction.updated al generar predicciones de un partido', async () => {
+      const socket = io(wsBaseUrl, { transports: ['websocket'] });
+
+      try {
+        await new Promise<void>((resolve, reject) => {
+          socket.on('connect', () => resolve());
+          socket.on('connect_error', reject);
+        });
+
+        const eventPromise = new Promise<{
+          matchId: string;
+          predictions: unknown[];
+        }>((resolve) => {
+          socket.on('prediction.updated', resolve);
+        });
+
+        await request(app.getHttpServer())
+          .post(
+            `/${apiPrefix}/predictions/matches/${predictionsMatchId}/generate`,
+          )
+          .expect(201);
+
+        const payload = await eventPromise;
+
+        expect(payload.matchId).toBe(predictionsMatchId);
+        expect(Array.isArray(payload.predictions)).toBe(true);
+        expect(payload.predictions).toHaveLength(3);
+      } finally {
+        socket.disconnect();
+      }
+    }, 15000);
+
+    it('emite simulation.progress al completar una simulacion', async () => {
+      const socket = io(wsBaseUrl, { transports: ['websocket'] });
+
+      try {
+        await new Promise<void>((resolve, reject) => {
+          socket.on('connect', () => resolve());
+          socket.on('connect_error', reject);
+        });
+
+        const eventPromise = new Promise<{
+          simulationId: string;
+          competitionId: string;
+          status: string;
+          progress: number;
+        }>((resolve) => {
+          socket.on('simulation.progress', resolve);
+        });
+
+        const res = await request(app.getHttpServer())
+          .post(`/${apiPrefix}/simulations`)
+          .send({ competitionId: simulationsCompetitionId, iterations: 100 })
+          .expect(201);
+
+        const payload = await eventPromise;
+
+        expect(payload.simulationId).toBe(res.body.id);
+        expect(payload.competitionId).toBe(simulationsCompetitionId);
+        expect(payload.status).toBe('COMPLETED');
+        expect(payload.progress).toBe(100);
+      } finally {
+        socket.disconnect();
+      }
+    }, 15000);
   });
 });

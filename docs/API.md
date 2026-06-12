@@ -170,8 +170,48 @@ numérico).
 único `TeamSimulationResultDto`; `404` si la simulación o el equipo no
 existen.
 
-## Roadmap (no implementado en Fase 4)
+## Fase 5 (implementados)
 
-| Fase | Endpoints | Descripción |
+### Dashboard (`/api/v1/dashboard`)
+
+| Método | Ruta | Descripción |
 |---|---|---|
-| 5 | `GET /dashboard/summary`, `GET /dashboard/rankings`, WS `/ws` (`prediction.updated`, `simulation.progress`) | Dashboard agregado y eventos en tiempo real |
+| GET | `/dashboard/summary` | Resumen agregado de la plataforma. |
+| GET | `/dashboard/rankings` | Ranking Elo paginado de todas las selecciones. |
+
+`GET /dashboard/summary` devuelve `DashboardSummaryResponseDto`:
+
+- `counts`: totales de `teams`, `competitions`, `matches`, `predictions` y
+  `simulations`.
+- `matchesByStatus`: número de partidos por `MatchStatus`
+  (`scheduled`, `live`, `finished`, `postponed`, `cancelled`).
+- `topTeams`: top 10 selecciones por `eloRating` (`id`, `name`, `shortName`,
+  `logoUrl`, `eloRating`, `fifaRanking`).
+- `upcomingMatches` / `recentResults`: los próximos 5 partidos `SCHEDULED`
+  (orden ascendente por `matchDate`) y los últimos 5 partidos `FINISHED`
+  (orden descendente), cada uno con `homeTeam`/`awayTeam`
+  (`id`, `name`, `shortName`, `logoUrl`), `competition` (`id`, `name`),
+  `matchDate`, `stage`, `homeGoals`, `awayGoals`.
+
+`GET /dashboard/rankings` está paginado vía `PaginationQueryDto` (`page`,
+`limit`) y devuelve `PaginatedResponseDto<DashboardRankingDto>`: todas las
+selecciones ordenadas por `eloRating` descendente, cada una con `rank`
+(posición global, no solo dentro de la página), `id`, `name`, `shortName`,
+`logoUrl`, `confederation`, `eloRating`, `fifaRanking`.
+
+### WebSocket (`/ws`)
+
+Gateway Socket.io en el namespace `/ws`. Eventos emitidos:
+
+- **`prediction.updated`** — `{ matchId, predictions }` (mismo
+  `PredictionResponseDto[]` que devuelve `GET /predictions/matches/:id`),
+  emitido tras `POST /predictions/matches/:id/generate`.
+- **`simulation.progress`** — `{ simulationId, competitionId, status:
+  'COMPLETED', progress: 100 }`, emitido una vez al completar `POST
+  /simulations`. La ejecución de simulaciones es síncrona (sin colas), por
+  lo que no hay progreso incremental real; eso queda para una futura
+  migración a ejecución asíncrona.
+
+Ambos eventos se publican internamente vía `EventEmitter2`
+(`prediction.updated` / `simulation.progress`) y `EventsGateway` los
+retransmite por WebSocket a todos los clientes conectados.

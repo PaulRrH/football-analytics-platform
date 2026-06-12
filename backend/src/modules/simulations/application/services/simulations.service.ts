@@ -4,7 +4,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { plainToInstance } from 'class-transformer';
+import { SIMULATION_PROGRESS_EVENT } from '../../../realtime/domain/realtime-events';
 import {
   type CompetitionGroupTeam,
   type ISimulationRepository,
@@ -30,6 +32,7 @@ export class SimulationsService {
   constructor(
     @Inject(SIMULATION_REPOSITORY)
     private readonly simulationRepository: ISimulationRepository,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async create(
@@ -108,6 +111,13 @@ export class SimulationsService {
       iterations,
       results,
     );
+
+    this.eventEmitter.emit(SIMULATION_PROGRESS_EVENT, {
+      simulationId: saved.id,
+      competitionId: dto.competitionId,
+      status: 'COMPLETED',
+      progress: 100,
+    });
 
     return this.toResultsResponse(saved);
   }

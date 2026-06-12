@@ -201,8 +201,10 @@ propio request y persiste el `TournamentSimulation` ya como `COMPLETED`
 [ARCHITECTURE.md](ARCHITECTURE.md)) quedan reservados para una futura
 migración a ejecución asíncrona si el volumen de iteraciones lo requiere, sin
 cambiar el contrato público (`PENDING`/`COMPLETED` ya cubren el flujo
-síncrono). El progreso por WebSocket (`simulation.progress`) también queda
-para esa fase futura.
+síncrono). El evento WebSocket `simulation.progress` ya se emite (una sola
+vez, al completar, con `progress: 100` — ver [API.md](API.md)); el *progreso
+incremental* real (múltiples emisiones durante la ejecución) queda para esa
+migración asíncrona futura.
 
 ## 5. Extensión futura: modelos ML (documentado, no implementado)
 

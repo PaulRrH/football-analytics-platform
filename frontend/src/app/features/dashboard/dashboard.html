@@ -6,26 +6,215 @@
     </mat-card-header>
   </mat-card>
 
+  @if (loading()) {
+    <div class="dashboard__loading">
+      <mat-spinner diameter="40" />
+    </div>
+  } @else if (errorMessage()) {
+    <p class="error-message">{{ errorMessage() }}</p>
+  } @else if (summary(); as currentSummary) {
+    <div class="dashboard__totals">
+      <mat-card>
+        <mat-card-content>
+          <span class="dashboard__total-value">{{ currentSummary.counts.teams }}</span>
+          <span class="dashboard__total-label">Equipos</span>
+        </mat-card-content>
+      </mat-card>
+      <mat-card>
+        <mat-card-content>
+          <span class="dashboard__total-value">{{ currentSummary.counts.competitions }}</span>
+          <span class="dashboard__total-label">Competiciones</span>
+        </mat-card-content>
+      </mat-card>
+      <mat-card>
+        <mat-card-content>
+          <span class="dashboard__total-value">{{ currentSummary.counts.matches }}</span>
+          <span class="dashboard__total-label">Partidos</span>
+        </mat-card-content>
+      </mat-card>
+      <mat-card>
+        <mat-card-content>
+          <span class="dashboard__total-value">{{ currentSummary.counts.predictions }}</span>
+          <span class="dashboard__total-label">Predicciones</span>
+        </mat-card-content>
+      </mat-card>
+      <mat-card>
+        <mat-card-content>
+          <span class="dashboard__total-value">{{ currentSummary.counts.simulations }}</span>
+          <span class="dashboard__total-label">Simulaciones</span>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <div class="dashboard__charts">
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>Ranking Elo &mdash; Top 10 selecciones</mat-card-title>
+          <mat-card-subtitle>Clasificación según el sistema de puntuación Elo</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <apx-chart
+            [series]="eloSeries()"
+            [chart]="eloChart"
+            [plotOptions]="eloPlotOptions"
+            [dataLabels]="eloDataLabels"
+            [xaxis]="eloXaxis()"
+          />
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>Partidos por estado</mat-card-title>
+          <mat-card-subtitle>Distribución de todos los partidos registrados</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <apx-chart
+            [series]="statusSeries()"
+            [chart]="statusChart"
+            [labels]="statusLabels"
+            [legend]="statusLegend"
+          />
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <div class="dashboard__matches">
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>Próximos partidos</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          @if (currentSummary.upcomingMatches.length === 0) {
+            <p class="dashboard__empty">No hay próximos partidos programados.</p>
+          } @else {
+            <mat-list>
+              @for (match of currentSummary.upcomingMatches; track match.id) {
+                <mat-list-item>
+                  <div class="dashboard__match">
+                    <span class="dashboard__match-teams">
+                      @if (match.homeTeam.logoUrl) {
+                        <img [src]="match.homeTeam.logoUrl" [alt]="match.homeTeam.name" class="dashboard__flag" />
+                      }
+                      {{ match.homeTeam.name }} vs {{ match.awayTeam.name }}
+                      @if (match.awayTeam.logoUrl) {
+                        <img [src]="match.awayTeam.logoUrl" [alt]="match.awayTeam.name" class="dashboard__flag" />
+                      }
+                    </span>
+                    <span class="dashboard__match-date">{{ match.matchDate | date: 'short' }}</span>
+                  </div>
+                </mat-list-item>
+              }
+            </mat-list>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>Resultados recientes</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          @if (currentSummary.recentResults.length === 0) {
+            <p class="dashboard__empty">No hay resultados recientes.</p>
+          } @else {
+            <mat-list>
+              @for (match of currentSummary.recentResults; track match.id) {
+                <mat-list-item>
+                  <div class="dashboard__match">
+                    <span class="dashboard__match-teams">
+                      @if (match.homeTeam.logoUrl) {
+                        <img [src]="match.homeTeam.logoUrl" [alt]="match.homeTeam.name" class="dashboard__flag" />
+                      }
+                      {{ match.homeTeam.name }} {{ match.homeGoals }} - {{ match.awayGoals }} {{ match.awayTeam.name }}
+                      @if (match.awayTeam.logoUrl) {
+                        <img [src]="match.awayTeam.logoUrl" [alt]="match.awayTeam.name" class="dashboard__flag" />
+                      }
+                    </span>
+                    <span class="dashboard__match-date">{{ match.matchDate | date: 'short' }}</span>
+                  </div>
+                </mat-list-item>
+              }
+            </mat-list>
+          }
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+
   <mat-card>
     <mat-card-header>
-      <mat-card-title>Ranking Elo &mdash; Top 10 selecciones</mat-card-title>
-      <mat-card-subtitle>Clasificación según el sistema de puntuación Elo</mat-card-subtitle>
+      <mat-card-title>Ranking Elo completo</mat-card-title>
+      <mat-card-subtitle>Todas las selecciones ordenadas por puntuación Elo</mat-card-subtitle>
     </mat-card-header>
     <mat-card-content>
-      @if (loading()) {
+      @if (rankingsError()) {
+        <p class="error-message">{{ rankingsError() }}</p>
+      }
+
+      @if (rankingsLoading()) {
         <div class="dashboard__loading">
           <mat-spinner diameter="40" />
         </div>
-      } @else if (errorMessage()) {
-        <p class="error-message">{{ errorMessage() }}</p>
       } @else {
-        <apx-chart
-          [series]="chartSeries()"
-          [chart]="chart"
-          [plotOptions]="plotOptions"
-          [dataLabels]="dataLabels"
-          [xaxis]="xaxis()"
+        <div class="dashboard__table-wrapper">
+          <table class="dashboard__table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Equipo</th>
+                <th>Confederación</th>
+                <th>Elo</th>
+                <th>Ranking FIFA</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (team of rankings(); track team.id) {
+                <tr>
+                  <td>{{ team.rank }}</td>
+                  <td class="dashboard__team">
+                    @if (team.logoUrl) {
+                      <img [src]="team.logoUrl" [alt]="team.name" class="dashboard__flag" />
+                    }
+                    {{ team.name }}
+                  </td>
+                  <td>{{ team.confederation }}</td>
+                  <td>{{ team.eloRating }}</td>
+                  <td>{{ team.fifaRanking ?? '—' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <mat-paginator
+          [length]="rankingsTotal()"
+          [pageSize]="rankingsLimit()"
+          [pageIndex]="rankingsPage() - 1"
+          [pageSizeOptions]="rankingPageSizeOptions"
+          (page)="onRankingsPageChange($event)"
         />
+      }
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>Actividad en tiempo real</mat-card-title>
+      <mat-card-subtitle>Últimos eventos recibidos por WebSocket</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      @if (activity().length === 0) {
+        <p class="dashboard__empty">Sin actividad reciente.</p>
+      } @else {
+        <mat-list>
+          @for (entry of activity(); track entry.id) {
+            <mat-list-item>
+              <span class="dashboard__activity-time">{{ entry.timestamp | date: 'mediumTime' }}</span>
+              {{ entry.message }}
+            </mat-list-item>
+          }
+        </mat-list>
       }
     </mat-card-content>
   </mat-card>

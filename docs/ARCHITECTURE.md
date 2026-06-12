@@ -33,7 +33,7 @@ flowchart TB
 - **Frontend**: Angular 20 (standalone components, signals), Angular
   Material, ApexCharts, RxJS. SPA estática servida por Vercel.
 - **Backend**: NestJS modular (Clean Architecture por módulo), API REST +
-  Swagger + WebSocket gateway (predicciones en tiempo real, Fase 5).
+  Swagger + WebSocket gateway (predicciones y simulaciones en tiempo real).
 - **Datos**: PostgreSQL como única fuente de verdad.
 - **Externo**: interfaz `SportsDataProvider` (puerto/adaptador) para futuras
   integraciones, sin implementación concreta aún.
@@ -93,6 +93,13 @@ modules/<modulo>/
   cambio, un recálculo de `eloRating` (`EloRatingService.applyMatchResult`,
   módulo `teams`) cuando un partido pasa a `FINISHED` con marcador definido —
   ver [PREDICTION_ENGINE.md](PREDICTION_ENGINE.md) §1.
+- **Eventos en tiempo real**: `PredictionsService.generatePredictions()` y
+  `SimulationsService.create()` emiten, tras persistir, los eventos
+  `prediction.updated` y `simulation.progress` vía `EventEmitter2`
+  (`@nestjs/event-emitter`, `EventEmitterModule.forRoot()` global). El módulo
+  `realtime` (`EventsGateway`, namespace `/ws`) escucha esos eventos con
+  `@OnEvent(...)` y los retransmite por Socket.io a todos los clientes
+  conectados — desacopla los módulos de dominio del transporte WebSocket.
 - **Controladores**: solo mapean rutas HTTP a servicios. Todos los endpoints
   son públicos, sin autenticación ni autorización.
 
@@ -131,13 +138,20 @@ estructura.
   `provideRouter` y *lazy loading* por feature.
 - **Layout**: `MainLayout` (toolbar + sidenav Material) para toda la
   aplicación.
-- **Features**: `dashboard` (ranking Elo vía ApexCharts), `teams`,
-  `competitions` (incluye gestión de grupos y la card "Simular torneo"),
-  `matches` (incluye `match-detail` con generación de predicciones
+- **Features**: `dashboard` (resumen agregado: totales, ranking Elo y
+  partidos por estado vía ApexCharts, próximos partidos/resultados
+  recientes, ranking Elo paginado y actividad en tiempo real vía WebSocket),
+  `teams`, `competitions` (incluye gestión de grupos y la card "Simular
+  torneo"), `matches` (incluye `match-detail` con generación de predicciones
   Elo/Poisson/Ensemble), `head-to-head`, `simulations` (página de resultados
   de una simulación Monte Carlo) — cada una con sus propios componentes de
   lista/detalle/formulario y un servicio HTTP tipado contra los DTOs del
   backend.
+- **Tiempo real**: `RealtimeService` (`socket.io-client`, conecta a
+  `${wsUrl}/ws`) expone `onPredictionUpdated()`/`onSimulationProgress()` como
+  `Observable`; el dashboard se suscribe con
+  `takeUntilDestroyed()` (`@angular/core/rxjs-interop`) para alimentar la
+  card "Actividad en tiempo real".
 
 ## 6. Infraestructura, Docker, CI/CD
 
@@ -167,7 +181,8 @@ estructura.
 - **Horizontal**: API stateless detrás del balanceador de Railway/Render;
   múltiples instancias.
 - **Tiempo real multi-instancia**: adaptador Redis para Socket.io
-  (`@socket.io/redis-adapter`) — Fase 5.
+  (`@socket.io/redis-adapter`) — necesario solo si la API escala a múltiples
+  instancias; el `EventsGateway` actual asume una sola instancia — futuro.
 - **API**: paginación obligatoria en listados, `select`/`include` explícito
   en Prisma para evitar over-fetching, DTOs de respuesta whitelisted.
 - **Observabilidad**: logging JSON (Pino) con duración por request, `/health`
@@ -175,8 +190,6 @@ estructura.
 
 ## Roadmap (fases futuras)
 
-- **Fase 5**: Dashboard completo (ApexCharts avanzado) + WebSocket en tiempo
-  real.
 - **Fase 6**: Panel admin completo (gestión usuarios/roles, audit log).
 - **Fase 7**: Adaptador de APIs externas (`SportsDataProvider`).
 - **Fase 8**: Hardening (cobertura e2e completa, particionado real, réplicas
