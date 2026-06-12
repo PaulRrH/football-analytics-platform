@@ -79,12 +79,14 @@ docker compose up --build
 ```
 
 La primera vez, con los contenedores arriba, aplica el esquema y carga los
-datos semilla contra la base de datos de Docker Compose:
+datos semilla contra la base de datos de Docker Compose (expuesta en el
+puerto `5433` del host para no chocar con una instalación local de
+PostgreSQL en el `5432`):
 
 ```bash
 cd backend
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/football_analytics?schema=public" npx prisma migrate dev
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/football_analytics?schema=public" npm run seed
+DATABASE_URL="postgresql://postgres:postgres@localhost:5433/football_analytics?schema=public" npx prisma migrate dev
+DATABASE_URL="postgresql://postgres:postgres@localhost:5433/football_analytics?schema=public" npm run seed
 ```
 
 ## Calidad
