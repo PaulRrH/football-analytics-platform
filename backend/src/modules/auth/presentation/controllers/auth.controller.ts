@@ -40,6 +40,7 @@ export class AuthController {
   @Public()
   @Throttle(AUTH_THROTTLE)
   @Post('login')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Iniciar sesion y obtener tokens de acceso/refresco',
   })
@@ -50,6 +51,7 @@ export class AuthController {
   @Public()
   @Throttle(AUTH_THROTTLE)
   @Post('refresh')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Rotar tokens a partir de un refresh token valido' })
   refresh(@Body() dto: RefreshTokenDto): Promise<AuthResponseDto> {
     return this.authService.refresh(dto);
