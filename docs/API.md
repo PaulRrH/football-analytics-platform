@@ -5,7 +5,10 @@ interactiva (Swagger) en `${API_PREFIX}/docs`.
 
 Convenciones:
 
-- **Acceso**: todos los endpoints son públicos, no requieren autenticación.
+- **Acceso**: todos los endpoints son públicos y no requieren autenticación,
+  **excepto** `GET /auth/me` y todo `/admin/*`, que requieren un header
+  `Authorization: Bearer <token>` obtenido vía `POST /auth/login`. Las rutas
+  `/admin/*` además requieren rol `ADMIN`.
 - **Listados**: paginados vía `PaginationQueryDto` (`page`, `limit`) y
   devueltos como `PaginatedResponseDto<T>` (`{ data: T[], meta: { total,
   page, limit, totalPages } }`).
@@ -215,3 +218,48 @@ Gateway Socket.io en el namespace `/ws`. Eventos emitidos:
 Ambos eventos se publican internamente vía `EventEmitter2`
 (`prediction.updated` / `simulation.progress`) y `EventsGateway` los
 retransmite por WebSocket a todos los clientes conectados.
+
+## Fase 6 (implementados)
+
+### Auth (`/api/v1/auth`)
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| POST | `/auth/login` | Login con `email`/`password`. Devuelve `accessToken` (JWT) y los datos del usuario. `401` si las credenciales son inválidas o el usuario está inactivo. |
+| GET | `/auth/me` | Datos del usuario autenticado (extraídos del JWT). Requiere `Authorization: Bearer <token>`. `401` sin token o token inválido. |
+
+`POST /auth/login` recibe `LoginDto` (`email`, `password`) y devuelve
+`AuthResponseDto`: `accessToken` y `user` (`id`, `email`, `name`, `role`).
+
+### Admin - Users (`/api/v1/admin/users`)
+
+Todos los endpoints requieren `Authorization: Bearer <token>` con rol
+`ADMIN` (`403` en caso contrario).
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/admin/users` | Listado paginado de usuarios. |
+| GET | `/admin/users/:id` | Detalle de un usuario. |
+| POST | `/admin/users` | Crea un usuario (`email` único, `password` con hash bcrypt, `role` opcional, default `EDITOR`). `409` si el email ya existe. |
+| PATCH | `/admin/users/:id` | Actualiza `name`/`role`/`isActive`/`password`. |
+| DELETE | `/admin/users/:id` | Elimina un usuario. |
+
+`PATCH`/`DELETE /admin/users/:id` devuelven `400 Bad Request` si la operación
+dejaría al sistema sin ningún usuario `ADMIN` activo, o si el usuario intenta
+eliminarse/desactivarse a sí mismo.
+
+`UserResponseDto` (todas las respuestas): `id`, `email`, `name`, `role`,
+`isActive`, `createdAt`, `updatedAt` (sin `passwordHash`).
+
+### Admin - Audit Log (`/api/v1/admin/audit-log`)
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/admin/audit-log` | Listado paginado del historial de mutaciones (`POST`/`PATCH`/`PUT`/`DELETE`) sobre entidades de dominio. Requiere `Authorization: Bearer <token>` con rol `ADMIN`. |
+
+Cada `AuditLogResponseDto` incluye `id`, `userId`/`userEmail` (`null` si la
+mutación fue anónima, es decir, sin token), `method`, `path`, `entityType`
+(primer segmento de la ruta, p. ej. `teams`), `entityId` (`null` si no aplica,
+p. ej. en `POST`), `statusCode` y `createdAt`. Se registra automáticamente vía
+un interceptor global (`AuditInterceptor`) para todas las mutaciones excepto
+`/auth/*` y `/admin/*`.

@@ -1,0 +1,67 @@
+<div class="audit-log-list">
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>Auditoría</mat-card-title>
+      <mat-card-subtitle>Historial de mutaciones realizadas en la plataforma</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      @if (errorMessage()) {
+        <p class="error-message">{{ errorMessage() }}</p>
+      }
+
+      @if (loading()) {
+        <div class="audit-log-list__loading">
+          <mat-spinner diameter="40" />
+        </div>
+      } @else {
+        <table mat-table [dataSource]="entries()" class="audit-log-list__table">
+          <ng-container matColumnDef="createdAt">
+            <th mat-header-cell *matHeaderCellDef>Fecha</th>
+            <td mat-cell *matCellDef="let entry">{{ entry.createdAt | date: 'medium' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="userEmail">
+            <th mat-header-cell *matHeaderCellDef>Usuario</th>
+            <td mat-cell *matCellDef="let entry">{{ entry.userEmail ?? 'Anónimo' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="method">
+            <th mat-header-cell *matHeaderCellDef>Método</th>
+            <td mat-cell *matCellDef="let entry">{{ entry.method }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="entityType">
+            <th mat-header-cell *matHeaderCellDef>Entidad</th>
+            <td mat-cell *matCellDef="let entry">{{ entry.entityType }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="entityId">
+            <th mat-header-cell *matHeaderCellDef>ID</th>
+            <td mat-cell *matCellDef="let entry">{{ entry.entityId ?? '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="statusCode">
+            <th mat-header-cell *matHeaderCellDef>Estado</th>
+            <td mat-cell *matCellDef="let entry">{{ entry.statusCode }}</td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+        </table>
+
+        @if (total() === 0) {
+          <p class="audit-log-list__empty">No hay registros de auditoría.</p>
+        }
+
+        <mat-paginator
+          [length]="total()"
+          [pageSize]="limit()"
+          [pageIndex]="page() - 1"
+          [pageSizeOptions]="[10, 25, 50, 100]"
+          (page)="onPageChange($event)"
+        />
+      }
+    </mat-card-content>
+  </mat-card>
+</div>

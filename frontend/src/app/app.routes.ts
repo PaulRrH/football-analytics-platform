@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { adminGuard } from './core/guards/admin.guard';
 
 export const routes: Routes = [
   {
@@ -7,8 +8,41 @@ export const routes: Routes = [
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       {
+        path: 'login',
+        loadComponent: () => import('./features/auth/login/login').then((m) => m.Login),
+      },
+      {
         path: 'dashboard',
         loadComponent: () => import('./features/dashboard/dashboard').then((m) => m.Dashboard),
+      },
+      {
+        path: 'admin/users',
+        canActivate: [adminGuard],
+        children: [
+          {
+            path: '',
+            loadComponent: () =>
+              import('./features/admin/users/user-list/user-list').then((m) => m.UserList),
+          },
+          {
+            path: 'new',
+            loadComponent: () =>
+              import('./features/admin/users/user-form/user-form').then((m) => m.UserForm),
+          },
+          {
+            path: ':id/edit',
+            loadComponent: () =>
+              import('./features/admin/users/user-form/user-form').then((m) => m.UserForm),
+          },
+        ],
+      },
+      {
+        path: 'admin/audit-log',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./features/admin/audit-log/audit-log-list/audit-log-list').then(
+            (m) => m.AuditLogList,
+          ),
       },
       {
         path: 'teams',

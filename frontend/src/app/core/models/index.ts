@@ -1,4 +1,6 @@
 export * from './api-error.model';
+export * from './audit-log.model';
+export * from './auth.model';
 export * from './competition.enum';
 export * from './competition.model';
 export * from './confederation.enum';
@@ -9,7 +11,9 @@ export * from './pagination.model';
 export * from './prediction.enum';
 export * from './prediction.model';
 export * from './realtime.model';
+export * from './role.enum';
 export * from './simulation.enum';
 export * from './simulation.model';
 export * from './stats.model';
 export * from './team.model';
+export * from './user.model';

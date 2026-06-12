@@ -100,8 +100,23 @@ modules/<modulo>/
   `realtime` (`EventsGateway`, namespace `/ws`) escucha esos eventos con
   `@OnEvent(...)` y los retransmite por Socket.io a todos los clientes
   conectados — desacopla los módulos de dominio del transporte WebSocket.
-- **Controladores**: solo mapean rutas HTTP a servicios. Todos los endpoints
-  son públicos, sin autenticación ni autorización.
+- **Controladores**: solo mapean rutas HTTP a servicios. Los endpoints de
+  dominio (`teams`, `matches`, `competitions`, `predictions`, `simulations`,
+  `stats`, `dashboard`) son públicos, sin autenticación ni autorización.
+- **Autenticación y autorización (Fase 6)**: `OptionalJwtAuthGuard`
+  (`APP_GUARD` global, registrado en `AuthModule`) decodifica el header
+  `Authorization: Bearer <token>` si está presente y rellena
+  `request.user`, pero nunca bloquea la request — así los endpoints públicos
+  siguen funcionando sin sesión, y `AuditInterceptor` puede atribuir
+  mutaciones a un usuario cuando lo hay. Las rutas que requieren sesión
+  (`GET /auth/me`, `/admin/*`) añaden `@UseGuards(JwtAuthGuard, RolesGuard)`
+  y, si aplica, `@Roles(Role.ADMIN)` (leído por `RolesGuard` vía
+  `Reflector`); `@CurrentUser()` extrae `request.user` en el controlador.
+- **Audit log (Fase 6)**: `AuditInterceptor` (`APP_INTERCEPTOR` global,
+  registrado en `AuditModule`) registra en `AuditLog` toda mutación
+  (`POST`/`PATCH`/`PUT`/`DELETE`) fuera de `/auth/*` y `/admin/*`, con
+  `userId`/`userEmail` (`null` si la request era anónima), `method`, `path`,
+  `entityType`, `entityId` y `statusCode`.
 
 Los módulos `teams`, `matches` y `competitions` son la implementación de
 referencia completa de este patrón y sirven de plantilla; `predictions`
@@ -125,6 +140,9 @@ estructura.
   `forbidNonWhitelisted`, `transform`, `enableImplicitConversion`).
 - **Seguridad HTTP**: `helmet()` + CORS restringido al origen configurado
   (`CORS_ORIGIN`).
+- **Autenticación**: JWT (`@nestjs/jwt` + `passport-jwt`), contraseñas
+  hasheadas con `bcrypt`. Todos los endpoints siguen siendo públicos
+  **excepto** `GET /auth/me` y `/admin/*` (ver §3).
 - **Rate limiting**: `@nestjs/throttler` (`ThrottlerGuard` global, 100
   req/min por defecto).
 - **Documentación**: Swagger (`@nestjs/swagger`) servido en
@@ -144,9 +162,15 @@ estructura.
   `teams`, `competitions` (incluye gestión de grupos y la card "Simular
   torneo"), `matches` (incluye `match-detail` con generación de predicciones
   Elo/Poisson/Ensemble), `head-to-head`, `simulations` (página de resultados
-  de una simulación Monte Carlo) — cada una con sus propios componentes de
-  lista/detalle/formulario y un servicio HTTP tipado contra los DTOs del
-  backend.
+  de una simulación Monte Carlo), `auth` (login), `admin` (gestión de
+  usuarios/roles y audit log, solo `ADMIN`) — cada una con sus propios
+  componentes de lista/detalle/formulario y un servicio HTTP tipado contra
+  los DTOs del backend.
+- **Autenticación (Fase 6)**: `AuthService` guarda el JWT en `localStorage` y
+  expone `currentUser`/`isAuthenticated`/`isAdmin` como signals (decodifica
+  el JWT al cargar la página para restaurar la sesión). `authInterceptor`
+  añade el header `Authorization` a las requests salientes y desloguea al
+  recibir `401`. `adminGuard` (`CanActivateFn`) protege `/admin/*`.
 - **Tiempo real**: `RealtimeService` (`socket.io-client`, conecta a
   `${wsUrl}/ws`) expone `onPredictionUpdated()`/`onSimulationProgress()` como
   `Observable`; el dashboard se suscribe con
@@ -190,7 +214,6 @@ estructura.
 
 ## Roadmap (fases futuras)
 
-- **Fase 6**: Panel admin completo (gestión usuarios/roles, audit log).
 - **Fase 7**: Adaptador de APIs externas (`SportsDataProvider`).
 - **Fase 8**: Hardening (cobertura e2e completa, particionado real, réplicas
   de lectura, configuración de despliegue Vercel/Railway en CI/CD).

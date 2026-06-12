@@ -34,6 +34,7 @@ jobs:
       API_PREFIX: api/v1
       PORT: 3000
       CORS_ORIGIN: http://localhost:4200
+      JWT_SECRET: test-secret
 
     steps:
       - uses: actions/checkout@v4

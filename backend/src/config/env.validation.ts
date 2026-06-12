@@ -22,6 +22,9 @@ class EnvironmentVariables {
 
   @IsString()
   CORS_ORIGIN: string;
+
+  @IsString()
+  JWT_SECRET: string;
 }
 
 export function validateEnv(config: Record<string, unknown>) {

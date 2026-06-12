@@ -7,7 +7,7 @@
     [fixedTopGap]="64"
   >
     <mat-nav-list>
-      @for (link of navLinks; track link.path) {
+      @for (link of navLinks(); track link.path) {
         <a
           mat-list-item
           [routerLink]="link.path"
@@ -30,6 +30,19 @@
       <span class="layout__title">Plataforma Mundial de Fútbol</span>
 
       <span class="layout__spacer"></span>
+
+      @if (isAuthenticated()) {
+        <span class="layout__user">{{ currentUser()?.email }}</span>
+        <button mat-button (click)="logout()">
+          <mat-icon>logout</mat-icon>
+          Cerrar sesión
+        </button>
+      } @else {
+        <a mat-button routerLink="/login">
+          <mat-icon>login</mat-icon>
+          Iniciar sesión
+        </a>
+      }
     </mat-toolbar>
 
     <main class="layout__main">

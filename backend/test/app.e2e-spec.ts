@@ -1,6 +1,8 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
+import * as bcrypt from 'bcrypt';
+import { Role } from '@prisma/client';
 import type { AddressInfo } from 'net';
 import type { Server } from 'http';
 import { io } from 'socket.io-client';
@@ -8,6 +10,10 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 import { AppConfig } from './../src/config/configuration';
+import { PrismaService } from './../src/infrastructure/prisma/prisma.service';
+
+const E2E_ADMIN_EMAIL = 'e2e-admin@worldcup-analytics.local';
+const E2E_ADMIN_PASSWORD = 'AdminE2E123!';
 
 describe('App (e2e)', () => {
   let app: INestApplication<App>;
@@ -15,6 +21,8 @@ describe('App (e2e)', () => {
   let wsBaseUrl: string;
   let predictionsMatchId: string;
   let simulationsCompetitionId: string;
+  let adminToken: string;
+  let adminUserId: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -42,6 +50,17 @@ describe('App (e2e)', () => {
     const server = app.getHttpServer() as unknown as Server;
     const { port } = server.address() as AddressInfo;
     wsBaseUrl = `http://127.0.0.1:${port}/ws`;
+
+    const prisma = app.get(PrismaService);
+    const admin = await prisma.user.create({
+      data: {
+        email: E2E_ADMIN_EMAIL,
+        passwordHash: bcrypt.hashSync(E2E_ADMIN_PASSWORD, 10),
+        name: 'Admin E2E',
+        role: Role.ADMIN,
+      },
+    });
+    adminUserId = admin.id;
   });
 
   afterAll(async () => {
@@ -778,5 +797,198 @@ describe('App (e2e)', () => {
         socket.disconnect();
       }
     }, 15000);
+  });
+
+  describe('Auth', () => {
+    it('POST /auth/login -> 200 con credenciales correctas', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/${apiPrefix}/auth/login`)
+        .send({ email: E2E_ADMIN_EMAIL, password: E2E_ADMIN_PASSWORD })
+        .expect(200);
+
+      expect(res.body.accessToken).toBeDefined();
+      expect(res.body.user.email).toBe(E2E_ADMIN_EMAIL);
+      expect(res.body.user.role).toBe('ADMIN');
+
+      adminToken = res.body.accessToken as string;
+    });
+
+    it('POST /auth/login -> 401 con password incorrecta', () => {
+      return request(app.getHttpServer())
+        .post(`/${apiPrefix}/auth/login`)
+        .send({ email: E2E_ADMIN_EMAIL, password: 'incorrecta' })
+        .expect(401);
+    });
+
+    it('GET /auth/me -> 200 con token valido', () => {
+      return request(app.getHttpServer())
+        .get(`/${apiPrefix}/auth/me`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.email).toBe(E2E_ADMIN_EMAIL);
+          expect(res.body.role).toBe('ADMIN');
+        });
+    });
+
+    it('GET /auth/me -> 401 sin token', () => {
+      return request(app.getHttpServer())
+        .get(`/${apiPrefix}/auth/me`)
+        .expect(401);
+    });
+  });
+
+  describe('Admin - Users', () => {
+    const editorEmail = 'e2e-editor@worldcup-analytics.local';
+    const editorPassword = 'EditorE2E123!';
+    let editorUserId: string;
+    let editorToken: string;
+
+    it('GET /admin/users -> 401 sin token', () => {
+      return request(app.getHttpServer())
+        .get(`/${apiPrefix}/admin/users`)
+        .expect(401);
+    });
+
+    it('POST /admin/users -> 201 crea un usuario EDITOR (admin)', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/${apiPrefix}/admin/users`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          email: editorEmail,
+          name: 'Editor E2E',
+          password: editorPassword,
+          role: 'EDITOR',
+        })
+        .expect(201);
+
+      expect(res.body.role).toBe('EDITOR');
+      expect(res.body).not.toHaveProperty('passwordHash');
+      editorUserId = res.body.id as string;
+    });
+
+    it('POST /admin/users -> 409 si el correo ya existe', () => {
+      return request(app.getHttpServer())
+        .post(`/${apiPrefix}/admin/users`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          email: editorEmail,
+          name: 'Editor Duplicado',
+          password: editorPassword,
+        })
+        .expect(409);
+    });
+
+    it('GET /admin/users -> 403 con token de un usuario EDITOR', async () => {
+      const loginRes = await request(app.getHttpServer())
+        .post(`/${apiPrefix}/auth/login`)
+        .send({ email: editorEmail, password: editorPassword })
+        .expect(200);
+      editorToken = loginRes.body.accessToken as string;
+
+      await request(app.getHttpServer())
+        .get(`/${apiPrefix}/admin/users`)
+        .set('Authorization', `Bearer ${editorToken}`)
+        .expect(403);
+    });
+
+    it('GET /admin/users -> 200 paginado con token admin', () => {
+      return request(app.getHttpServer())
+        .get(`/${apiPrefix}/admin/users`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(Array.isArray(res.body.data)).toBe(true);
+          expect(res.body.meta).toHaveProperty('total');
+          expect(res.body.meta.total).toBeGreaterThanOrEqual(2);
+        });
+    });
+
+    it('PATCH /admin/users/:id -> 200 actualiza role e isActive', () => {
+      return request(app.getHttpServer())
+        .patch(`/${apiPrefix}/admin/users/${editorUserId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ isActive: false, role: 'EDITOR' })
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.isActive).toBe(false);
+          expect(res.body.role).toBe('EDITOR');
+        });
+    });
+
+    it('DELETE /admin/users/:id -> 400 si el admin intenta eliminarse a si mismo', () => {
+      return request(app.getHttpServer())
+        .delete(`/${apiPrefix}/admin/users/${adminUserId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(400);
+    });
+
+    it('DELETE /admin/users/:id -> 200 elimina al usuario EDITOR de prueba', () => {
+      return request(app.getHttpServer())
+        .delete(`/${apiPrefix}/admin/users/${editorUserId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+    });
+  });
+
+  describe('Admin - Audit Log', () => {
+    it('GET /admin/audit-log -> 401 sin token', () => {
+      return request(app.getHttpServer())
+        .get(`/${apiPrefix}/admin/audit-log`)
+        .expect(401);
+    });
+
+    it('GET /admin/audit-log -> 200 incluye mutaciones anonimas previas', async () => {
+      const res = await request(app.getHttpServer())
+        .get(`/${apiPrefix}/admin/audit-log`)
+        .query({ limit: 100 })
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      expect(Array.isArray(res.body.data)).toBe(true);
+      expect(res.body.meta.total).toBeGreaterThan(0);
+
+      const entries = res.body.data as Array<{
+        entityType: string;
+        userId: string | null;
+      }>;
+
+      expect(
+        entries.some(
+          (entry) => entry.entityType === 'teams' && entry.userId === null,
+        ),
+      ).toBe(true);
+    });
+
+    it('GET /admin/audit-log -> registra mutaciones autenticadas con el userId del admin', async () => {
+      await request(app.getHttpServer())
+        .post(`/${apiPrefix}/teams`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'Test Audit FC E2E',
+          shortName: 'TAU',
+          country: 'Test',
+          confederation: 'UEFA',
+        })
+        .expect(201);
+
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      const res = await request(app.getHttpServer())
+        .get(`/${apiPrefix}/admin/audit-log`)
+        .query({ limit: 1 })
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      const [latest] = res.body.data as Array<{
+        method: string;
+        entityType: string;
+        userId: string | null;
+      }>;
+
+      expect(latest.method).toBe('POST');
+      expect(latest.entityType).toBe('teams');
+      expect(latest.userId).toBe(adminUserId);
+    });
   });
 });

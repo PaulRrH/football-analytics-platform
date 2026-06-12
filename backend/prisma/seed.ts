@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as bcrypt from 'bcrypt';
 import {
   PrismaClient,
   Confederation,
@@ -7,6 +8,7 @@ import {
   CompetitionStatus,
   MatchStage,
   MatchStatus,
+  Role,
 } from '@prisma/client';
 import {
   type HistoricalMatchRow,
@@ -237,6 +239,24 @@ async function cleanDatabase() {
   await prisma.team.deleteMany();
 }
 
+async function seedAdminUser() {
+  const email = process.env.SEED_ADMIN_EMAIL ?? 'admin@worldcup-analytics.local';
+  const password = process.env.SEED_ADMIN_PASSWORD ?? 'Admin123!';
+
+  await prisma.user.upsert({
+    where: { email },
+    update: {},
+    create: {
+      email,
+      name: 'Administrador',
+      passwordHash: bcrypt.hashSync(password, 10),
+      role: Role.ADMIN,
+    },
+  });
+
+  console.log(`Usuario admin disponible: ${email}`);
+}
+
 async function main() {
   console.log('Limpiando base de datos...');
   await cleanDatabase();
@@ -247,6 +267,7 @@ async function main() {
   const { worldCup } = await seedCompetitions(idByName);
   await seedHistoricalMatches(idByName);
   await seedWorldCupMatches(idByName, worldCup.id);
+  await seedAdminUser();
 
   console.log('Seed completado.');
 }

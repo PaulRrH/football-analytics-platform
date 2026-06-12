@@ -20,6 +20,7 @@ erDiagram
     MATCH ||--o{ MATCH_STATISTIC : detalle
     MATCH ||--o{ PREDICTION : predicciones
     TOURNAMENT_SIMULATION ||--o{ TEAM_SIMULATION_RESULT : produce
+    USER ||--o{ AUDIT_LOG : registra
 ```
 
 ## Enums
@@ -33,6 +34,7 @@ erDiagram
 | `MatchStatus` | `SCHEDULED`, `LIVE`, `FINISHED`, `POSTPONED`, `CANCELLED` |
 | `PredictionModel` | `ELO`, `POISSON`, `MONTE_CARLO`, `ENSEMBLE` |
 | `SimulationStatus` | `PENDING`, `RUNNING`, `COMPLETED`, `FAILED` |
+| `Role` | `ADMIN`, `EDITOR` |
 
 ## Entidades
 
@@ -200,6 +202,45 @@ Probabilidades agregadas por equipo de una simulación.
 
 Único: `[simulationId, teamId]`.
 
+### User (`users`)
+
+Cuentas con acceso a `/admin/*` (Fase 6). Se crean/gestionan vía
+`/api/v1/admin/users`.
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `id` | `String (uuid)` | PK |
+| `email` | `String` | único |
+| `passwordHash` | `String` | bcrypt, 10 salt rounds |
+| `name` | `String` | |
+| `role` | `Role` | default `EDITOR` |
+| `isActive` | `Boolean` | default `true` |
+| `createdAt` / `updatedAt` | `DateTime` | |
+
+Relaciones: `auditLogs` (1:N). Reglas de negocio (capa de aplicación): no se
+puede eliminar/desactivar ni degradar de rol al propio usuario, ni dejar el
+sistema sin ningún `ADMIN` activo.
+
+### AuditLog (`audit_logs`)
+
+Historial de mutaciones (`POST`/`PATCH`/`PUT`/`DELETE`) registrado
+automáticamente por `AuditInterceptor` (Fase 6) para todas las rutas excepto
+`/auth/*` y `/admin/*`.
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `id` | `String (uuid)` | PK |
+| `userId` | `String?` | FK -> `User`, `onDelete: SetNull`; `null` si la mutación fue anónima |
+| `userEmail` | `String?` | snapshot del email en el momento de la mutación (persiste aunque se borre el usuario) |
+| `method` | `String` | `POST` / `PATCH` / `PUT` / `DELETE` |
+| `path` | `String` | ruta completa de la request |
+| `entityType` | `String` | primer segmento de la ruta, p. ej. `teams` |
+| `entityId` | `String?` | `request.params.id` si existe |
+| `statusCode` | `Int` | |
+| `createdAt` | `DateTime` | default `now()` |
+
+Índices: `[createdAt]`, `[userId]`.
+
 ## Migraciones y seed
 
 ```bash
@@ -218,3 +259,9 @@ público `martj42/international_results`, CC0), agrupados en 44 competiciones
 (una por torneo: `FIFA World Cup`, `Copa América`, `UEFA Euro`, `Friendly`,
 etc.). Esto alimenta los endpoints de `teams`, `matches`, `competitions`
 (`standings`) y `stats` (`team-form`, `head-to-head`) con datos reales.
+
+El seed también crea (upsert) un usuario `ADMIN` para `/admin/*` (Fase 6),
+con `email`/`password` tomados de las variables de entorno
+`SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` (defaults de desarrollo:
+`admin@worldcup-analytics.local` / `Admin123!`). **Cambiar estos valores en
+producción.**

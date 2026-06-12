@@ -8,6 +8,10 @@ export interface AppConfig {
   cors: {
     origin: string;
   };
+  jwt: {
+    secret: string;
+    expiresIn: string;
+  };
 }
 
 export default (): AppConfig => ({
@@ -19,5 +23,9 @@ export default (): AppConfig => ({
   },
   cors: {
     origin: process.env.CORS_ORIGIN ?? 'http://localhost:4200',
+  },
+  jwt: {
+    secret: process.env.JWT_SECRET ?? '',
+    expiresIn: process.env.JWT_EXPIRES_IN ?? '1d',
   },
 });

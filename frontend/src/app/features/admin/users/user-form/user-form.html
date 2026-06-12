@@ -1,0 +1,83 @@
+<div class="user-form">
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>{{ isEdit() ? 'Editar usuario' : 'Nuevo usuario' }}</mat-card-title>
+      <mat-card-subtitle>
+        {{ isEdit() ? 'Actualiza los datos de la cuenta' : 'Crea una nueva cuenta de usuario' }}
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      @if (loading()) {
+        <div class="user-form__loading">
+          <mat-spinner diameter="40" />
+        </div>
+      } @else {
+        @if (errorMessage()) {
+          <p class="error-message">{{ errorMessage() }}</p>
+        }
+
+        <form class="user-form__form" [formGroup]="form" (ngSubmit)="submit()">
+          <mat-form-field appearance="outline" class="user-form__field--full">
+            <mat-label>Correo electrónico</mat-label>
+            <input matInput type="email" formControlName="email" />
+            @if (form.controls.email.hasError('required')) {
+              <mat-error>El correo es obligatorio.</mat-error>
+            }
+            @if (form.controls.email.hasError('email')) {
+              <mat-error>Introduce un correo válido.</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="user-form__field--full">
+            <mat-label>Nombre</mat-label>
+            <input matInput formControlName="name" />
+            @if (form.controls.name.hasError('required')) {
+              <mat-error>El nombre es obligatorio.</mat-error>
+            }
+            @if (form.controls.name.hasError('minlength')) {
+              <mat-error>El nombre debe tener al menos 2 caracteres.</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="user-form__field--full">
+            <mat-label>{{ isEdit() ? 'Nueva contraseña (opcional)' : 'Contraseña' }}</mat-label>
+            <input matInput type="password" formControlName="password" />
+            @if (form.controls.password.hasError('required')) {
+              <mat-error>La contraseña es obligatoria.</mat-error>
+            }
+            @if (form.controls.password.hasError('minlength')) {
+              <mat-error>La contraseña debe tener al menos 8 caracteres.</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="user-form__field--full">
+            <mat-label>Rol</mat-label>
+            <mat-select formControlName="role">
+              @for (role of roles; track role) {
+                <mat-option [value]="role">{{ role }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          @if (isEdit()) {
+            <mat-checkbox formControlName="isActive" class="user-form__checkbox">
+              Cuenta activa
+            </mat-checkbox>
+          }
+
+          <div class="user-form__actions">
+            <a mat-button routerLink="/admin/users">Cancelar</a>
+            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="20" />
+              } @else {
+                {{ isEdit() ? 'Guardar cambios' : 'Crear usuario' }}
+              }
+            </button>
+          </div>
+        </form>
+      }
+    </mat-card-content>
+  </mat-card>
+</div>

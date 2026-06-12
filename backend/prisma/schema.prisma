@@ -70,6 +70,11 @@ enum SimulationStatus {
   FAILED
 }
 
+enum Role {
+  ADMIN
+  EDITOR
+}
+
 // ---------------------------------------------------------------------------
 // Teams & Rankings
 // ---------------------------------------------------------------------------
@@ -255,4 +260,41 @@ model TeamSimulationResult {
 
   @@unique([simulationId, teamId])
   @@map("team_simulation_results")
+}
+
+// ---------------------------------------------------------------------------
+// Auth & Audit (Fase 6)
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         Role     @default(EDITOR)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  auditLogs AuditLog[]
+
+  @@map("users")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  userEmail  String?
+  method     String
+  path       String
+  entityType String
+  entityId   String?
+  statusCode Int
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([userId])
+  @@map("audit_logs")
 }

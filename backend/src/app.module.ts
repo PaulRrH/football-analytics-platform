@@ -9,6 +9,8 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import configuration, { AppConfig } from './config/configuration';
 import { validateEnv } from './config/env.validation';
 import { PrismaModule } from './infrastructure/prisma/prisma.module';
+import { AuditModule } from './modules/audit/audit.module';
+import { AuthModule } from './modules/auth/auth.module';
 import { CompetitionsModule } from './modules/competitions/competitions.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { HealthModule } from './modules/health/health.module';
@@ -18,6 +20,7 @@ import { RealtimeModule } from './modules/realtime/realtime.module';
 import { SimulationsModule } from './modules/simulations/simulations.module';
 import { StatsModule } from './modules/stats/stats.module';
 import { TeamsModule } from './modules/teams/teams.module';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -54,6 +57,9 @@ import { TeamsModule } from './modules/teams/teams.module';
     HealthModule,
     RealtimeModule,
     DashboardModule,
+    UsersModule,
+    AuthModule,
+    AuditModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
