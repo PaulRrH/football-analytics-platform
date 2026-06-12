@@ -208,8 +208,9 @@ estructura.
   `deploy-backend`, corren solo en `push` a `master` tras `frontend`/`backend`
   respectivamente: hacen `checkout` y, si existen los secrets
   correspondientes (`VERCEL_TOKEN`/`VERCEL_ORG_ID`/`VERCEL_PROJECT_ID` para
-  Vercel, `RAILWAY_TOKEN` para Railway), despliegan a producción. El paso de
-  despliegue usa un `if` a nivel de step sobre `secrets.X != ''`; sin esos
+  Vercel, `RAILWAY_TOKEN` para Railway), despliegan a producción. Los secrets
+  se exponen como `env` a nivel de job (el contexto `secrets` no es accesible
+  en `steps.if`) y el paso de despliegue usa `if: env.X != ''`; sin esos
   secrets configurados en el repositorio (caso por defecto), el paso queda
   *skipped* y el job termina en verde — no rompe CI. Ver "Despliegue" en
   [README.md](../README.md) para el alta manual de los proyectos en
