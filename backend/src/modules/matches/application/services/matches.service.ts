@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { PaginatedResponseDto } from '../../../../common/dto/paginated-response.dto';
+import { MatchStatus } from '../../../../common/enums/match-status.enum';
+import { EloRatingService } from '../../../teams/application/services/elo-rating.service';
 import {
   type IMatchRepository,
   MATCH_REPOSITORY,
@@ -24,6 +26,7 @@ export class MatchesService {
   constructor(
     @Inject(MATCH_REPOSITORY)
     private readonly matchRepository: IMatchRepository,
+    private readonly eloRatingService: EloRatingService,
   ) {}
 
   async create(dto: CreateMatchDto): Promise<MatchResponseDto> {
@@ -90,6 +93,13 @@ export class MatchesService {
       matchDate: dto.matchDate ? new Date(dto.matchDate) : undefined,
     });
 
+    await this.recalculateEloIfJustFinished(
+      existing,
+      dto,
+      homeTeamId,
+      awayTeamId,
+    );
+
     return this.findOne(id);
   }
 
@@ -117,6 +127,41 @@ export class MatchesService {
     return plainToInstance(MatchStatisticResponseDto, statistic, {
       excludeExtraneousValues: true,
     });
+  }
+
+  /**
+   * Domain event: al finalizar un partido con marcador, recalcula el
+   * `eloRating` de ambos equipos (ver PREDICTION_ENGINE.md §1).
+   */
+  private async recalculateEloIfJustFinished(
+    existing: MatchWithRelations,
+    dto: UpdateMatchDto,
+    homeTeamId: string,
+    awayTeamId: string,
+  ): Promise<void> {
+    const newStatus = dto.status ?? existing.status;
+    if (
+      existing.status === MatchStatus.FINISHED ||
+      newStatus !== MatchStatus.FINISHED
+    ) {
+      return;
+    }
+
+    const homeGoals = dto.homeGoals ?? existing.homeGoals;
+    const awayGoals = dto.awayGoals ?? existing.awayGoals;
+    if (homeGoals == null || awayGoals == null) {
+      return;
+    }
+
+    const stage = dto.stage ?? existing.stage;
+
+    await this.eloRatingService.applyMatchResult(
+      homeTeamId,
+      awayTeamId,
+      homeGoals,
+      awayGoals,
+      stage,
+    );
   }
 
   private async findMatchOrThrow(id: string): Promise<MatchWithRelations> {

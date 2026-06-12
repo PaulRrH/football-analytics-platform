@@ -1,6 +1,7 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Confederation, MatchStage, MatchStatus } from '@prisma/client';
+import { EloRatingService } from '../../../teams/application/services/elo-rating.service';
 import {
   IMatchRepository,
   MATCH_REPOSITORY,
@@ -12,6 +13,7 @@ import { MatchesService } from './matches.service';
 describe('MatchesService', () => {
   let service: MatchesService;
   let repository: jest.Mocked<IMatchRepository>;
+  let eloRatingService: jest.Mocked<EloRatingService>;
 
   const homeTeam = {
     id: 'team-home',
@@ -71,10 +73,15 @@ describe('MatchesService', () => {
       upsertStatistic: jest.fn(),
     };
 
+    eloRatingService = {
+      applyMatchResult: jest.fn(),
+    } as unknown as jest.Mocked<EloRatingService>;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MatchesService,
         { provide: MATCH_REPOSITORY, useValue: repository },
+        { provide: EloRatingService, useValue: eloRatingService },
       ],
     }).compile();
 
@@ -190,6 +197,68 @@ describe('MatchesService', () => {
       ).rejects.toBeInstanceOf(BadRequestException);
 
       expect(repository.update).not.toHaveBeenCalled();
+    });
+
+    it('recalcula el Elo cuando el partido pasa a FINISHED con goles', async () => {
+      repository.findById.mockResolvedValue(matchWithRelations);
+      repository.update.mockResolvedValue({
+        ...baseMatch,
+        status: MatchStatus.FINISHED,
+        homeGoals: 2,
+        awayGoals: 1,
+      });
+
+      await service.update(baseMatch.id, {
+        status: MatchStatus.FINISHED,
+        homeGoals: 2,
+        awayGoals: 1,
+      });
+
+      expect(eloRatingService.applyMatchResult).toHaveBeenCalledWith(
+        homeTeam.id,
+        awayTeam.id,
+        2,
+        1,
+        MatchStage.GROUP_STAGE,
+      );
+    });
+
+    it('no recalcula el Elo si el partido ya estaba FINISHED', async () => {
+      const finishedMatch: MatchWithRelations = {
+        ...matchWithRelations,
+        status: MatchStatus.FINISHED,
+        homeGoals: 1,
+        awayGoals: 0,
+      };
+      repository.findById.mockResolvedValue(finishedMatch);
+      repository.update.mockResolvedValue({
+        ...baseMatch,
+        status: MatchStatus.FINISHED,
+        homeGoals: 2,
+        awayGoals: 1,
+      });
+
+      await service.update(baseMatch.id, {
+        status: MatchStatus.FINISHED,
+        homeGoals: 2,
+        awayGoals: 1,
+      });
+
+      expect(eloRatingService.applyMatchResult).not.toHaveBeenCalled();
+    });
+
+    it('no recalcula el Elo si pasa a FINISHED sin goles', async () => {
+      repository.findById.mockResolvedValue(matchWithRelations);
+      repository.update.mockResolvedValue({
+        ...baseMatch,
+        status: MatchStatus.FINISHED,
+      });
+
+      await service.update(baseMatch.id, {
+        status: MatchStatus.FINISHED,
+      });
+
+      expect(eloRatingService.applyMatchResult).not.toHaveBeenCalled();
     });
   });
 

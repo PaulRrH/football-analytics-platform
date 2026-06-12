@@ -1,19 +1,24 @@
-# Motor de Predicción (diseño — Fases 3-4)
+# Motor de Predicción
 
 Este documento describe el diseño matemático y de software del motor de
-predicción. **No implementado en Fase 1**: las entidades `Prediction`,
-`TournamentSimulation` y `TeamSimulationResult` ya existen en
+predicción. Las entidades `Prediction`, `TournamentSimulation` y
+`TeamSimulationResult` existen en
 [`schema.prisma`](../backend/prisma/schema.prisma) (ver
-[DATABASE.md](DATABASE.md)), pero los módulos NestJS correspondientes se
-construyen en Fases 3 y 4.
+[DATABASE.md](DATABASE.md)).
 
-## 1. Modelo Elo (Fase 3)
+**Estado**: §1-3 (Elo, Poisson, Ensemble) implementados en Fase 3 — módulo
+`predictions` (`GET /predictions/matches/:id`,
+`POST /predictions/matches/:id/generate`, ver [API.md](API.md)) y recálculo
+de Elo al finalizar partidos. §4 (Monte Carlo) y §5 (ML) son diseño para
+fases futuras.
+
+## 1. Modelo Elo (implementado)
 
 Cada `Team` mantiene un `eloRating` (default `1500`). Para un partido entre
 un equipo local y uno visitante:
 
 **Probabilidad esperada de victoria local** (con ventaja de local
-`HomeAdv`, p. ej. `100` puntos):
+`HomeAdv`):
 
 ```
 E_home = 1 / (1 + 10^((R_away - R_home - HomeAdv) / 400))
@@ -37,16 +42,42 @@ factor de ajuste que crece con:
 
 Cada actualización de Elo genera además una fila en `TeamRankingHistory`
 (`eloRating`, `recordedAt`) para alimentar las gráficas de tendencia del
-dashboard.
+dashboard. Este recálculo se dispara como *domain event* desde
+`MatchesService.update()` cuando un partido pasa a `FINISHED` con marcador
+definido (`EloRatingService.applyMatchResult`, módulo `teams`).
 
-`E_home`/`E_away` se usan directamente como
-`homeWinProbability`/`awayWinProbability` de una `Prediction` con
-`model = ELO` (la probabilidad de empate se reparte mediante el modelo
-Poisson o un valor empírico fijo, ver §3 Ensemble).
+`E_home`/`E_away` se combinan con una probabilidad de empate fija para
+obtener `homeWinProbability`/`drawProbability`/`awayWinProbability` de una
+`Prediction` con `model = ELO`:
 
-## 2. Modelo Poisson (Fase 3)
+```
+homeWinProbability = E_home · (1 - BASE_DRAW_PROBABILITY)
+drawProbability    = BASE_DRAW_PROBABILITY
+awayWinProbability = E_away · (1 - BASE_DRAW_PROBABILITY)
+```
 
-A partir del historial de `Match`/`MatchStatistic`, se calculan fuerzas de
+**Constantes implementadas** (`backend/src/common/utils/elo.util.ts`):
+
+| Constante | Valor | Uso |
+|---|---|---|
+| `HOME_ADVANTAGE_ELO` | `100` | `HomeAdv` en `E_home`/`E_away` |
+| `BASE_DRAW_PROBABILITY` | `0.25` | probabilidad de empate del modelo ELO |
+| `ELO_K_FACTOR` | `20` | factor base `K` |
+
+`K = ELO_K_FACTOR · goalDiffMultiplier(|Δgoles|) · stageMultiplier(stage)`,
+con:
+
+- `goalDiffMultiplier`: `1` si `Δgoles ≤ 1`; `1.5` si `Δgoles = 2`;
+  `(11 + Δgoles) / 8` si `Δgoles ≥ 3`.
+- `stageMultiplier`: `FRIENDLY = 1`, `QUALIFIER = 1.5`, `FINAL = 2`, resto de
+  fases (`GROUP_STAGE`, `ROUND_OF_16`, `QUARTER_FINAL`, `SEMI_FINAL`,
+  `THIRD_PLACE`) `= 1.75`.
+
+El nuevo rating se redondea a 1 decimal.
+
+## 2. Modelo Poisson (implementado)
+
+A partir del historial de `Match` `FINISHED`, se calculan fuerzas de
 ataque/defensa relativas por equipo (normalizadas respecto al promedio de
 goles de la competición):
 
@@ -79,7 +110,18 @@ P(victoria_visit) = Σ P(i,j) para i < j
 `predictedHomeGoals = λ_home`, `predictedAwayGoals = λ_away` se guardan en
 `Prediction` con `model = POISSON`.
 
-## 3. Ensemble (Fase 3)
+**Constantes implementadas** (`backend/src/common/utils/poisson.util.ts`):
+
+| Constante | Valor | Uso |
+|---|---|---|
+| `MAX_GOALS` | `6` | truncamiento de la matriz `P(i,j)` (0-6 goles) |
+| `POISSON_HOME_ADVANTAGE_FACTOR` | `1.2` | `HomeAdvFactor` en `λ_home` |
+| `DEFAULT_LEAGUE_AVERAGE_GOALS` | `1.35` | fallback de `goles_promedio_liga` si no hay partidos `FINISHED` |
+
+Si un equipo no tiene partidos `FINISHED` registrados, `attack`/`defense` se
+toman como `1` (fuerza igual a la media de la liga).
+
+## 3. Ensemble (implementado)
 
 Combinación ponderada de Elo y Poisson:
 
@@ -87,9 +129,14 @@ Combinación ponderada de Elo y Poisson:
 P_ensemble = w_elo · P_elo + w_poisson · P_poisson      (w_elo + w_poisson = 1)
 ```
 
-Los pesos (`w_elo`, `w_poisson`) son configurables y se calibran comparando
-contra resultados históricos (Brier score / log-loss). Se persiste como
-`Prediction` con `model = ENSEMBLE`.
+**Constantes implementadas** (`backend/src/modules/predictions/application/prediction-calculator.ts`):
+`ENSEMBLE_WEIGHT_ELO = 0.5`, `ENSEMBLE_WEIGHT_POISSON = 0.5`. Pueden
+recalibrarse en el futuro comparando contra resultados históricos (Brier
+score / log-loss).
+
+`predictedHomeGoals`/`predictedAwayGoals` del ensemble son los del modelo
+Poisson (`λ_home`/`λ_away`). Se persiste como `Prediction` con
+`model = ENSEMBLE`.
 
 ## 4. Simulación Monte Carlo de torneos (Fase 4)
 
@@ -119,7 +166,11 @@ puede emitir por WebSocket (`simulation.progress`, Fase 5).
 
 ## 5. Extensión futura: modelos ML (documentado, no implementado)
 
-El motor se diseña con el patrón **Strategy**:
+Fase 3 implementa Elo/Poisson/Ensemble como funciones puras
+(`calculateEloPrediction`, `calculatePoissonPrediction`,
+`calculateEnsemblePrediction` en `prediction-calculator.ts`), invocadas desde
+`PredictionsService.generatePredictions`. Una futura extensión con modelos ML
+podría introducir el patrón **Strategy**:
 
 ```typescript
 interface PredictionStrategy {
@@ -128,8 +179,7 @@ interface PredictionStrategy {
 }
 ```
 
-Implementaciones actuales: `EloStrategy`, `PoissonStrategy`,
-`EnsembleStrategy`. Una futura `MLModelStrategy` podría delegar a un
-microservicio Python/FastAPI (p. ej. un modelo de gradient boosting o red
-neuronal entrenado con `xG`, posesión, forma reciente, etc.) implementando la
-misma interfaz — sin cambios en el resto del core ni en los controladores.
+Una `MLModelStrategy` podría delegar a un microservicio Python/FastAPI (p.
+ej. un modelo de gradient boosting o red neuronal entrenado con `xG`,
+posesión, forma reciente, etc.) implementando la misma interfaz — sin cambios
+en el resto del core ni en los controladores.

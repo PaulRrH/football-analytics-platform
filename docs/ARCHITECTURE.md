@@ -92,6 +92,10 @@ modules/<modulo>/
   equipo, validación de que local ≠ visitante en un partido) y lanzan
   excepciones HTTP semánticas (`NotFoundException`, `ConflictException`,
   `BadRequestException`).
+- **Domain events**: `MatchesService.update()` dispara, tras persistir el
+  cambio, un recálculo de `eloRating` (`EloRatingService.applyMatchResult`,
+  módulo `teams`) cuando un partido pasa a `FINISHED` con marcador definido —
+  ver [PREDICTION_ENGINE.md](PREDICTION_ENGINE.md) §1.
 - **Controladores**: solo mapean rutas HTTP a servicios. Todos los endpoints
   son públicos, sin autenticación ni autorización.
 
@@ -130,9 +134,10 @@ fases futuras (`predictions`, `simulations`, etc.).
 - **Layout**: `MainLayout` (toolbar + sidenav Material) para toda la
   aplicación.
 - **Features**: `dashboard` (ranking Elo vía ApexCharts), `teams`,
-  `competitions`, `matches`, `head-to-head` — cada una con sus propios
-  componentes de lista/detalle/formulario y un servicio HTTP tipado contra
-  los DTOs del backend.
+  `competitions`, `matches` (incluye `match-detail` con generación de
+  predicciones Elo/Poisson/Ensemble), `head-to-head` — cada una con sus
+  propios componentes de lista/detalle/formulario y un servicio HTTP tipado
+  contra los DTOs del backend.
 
 ## 6. Infraestructura, Docker, CI/CD
 
@@ -168,9 +173,6 @@ fases futuras (`predictions`, `simulations`, etc.).
 
 ## Roadmap (fases futuras)
 
-- **Fase 3**: motor de predicción Elo+Poisson, módulo `predictions`,
-  recálculo de Elo al finalizar partidos (domain event). Ver
-  [PREDICTION_ENGINE.md](PREDICTION_ENGINE.md).
 - **Fase 4**: Redis + BullMQ + worker, simulaciones Monte Carlo, módulo
   `simulations`.
 - **Fase 5**: Dashboard completo (ApexCharts avanzado) + WebSocket en tiempo

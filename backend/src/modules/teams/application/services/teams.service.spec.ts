@@ -36,6 +36,7 @@ describe('TeamsService', () => {
       update: jest.fn(),
       delete: jest.fn(),
       findRankingHistory: jest.fn(),
+      recordRankingHistory: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({

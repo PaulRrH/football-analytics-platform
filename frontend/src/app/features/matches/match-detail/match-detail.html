@@ -1,0 +1,148 @@
+<div class="match-detail">
+  <div class="match-detail__header">
+    <a mat-icon-button routerLink="/matches" aria-label="Volver al listado">
+      <mat-icon>arrow_back</mat-icon>
+    </a>
+
+    @if (match(); as currentMatch) {
+      <a mat-flat-button color="primary" [routerLink]="['/matches', currentMatch.id, 'edit']">
+        <mat-icon>edit</mat-icon>
+        Editar
+      </a>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="match-detail__loading">
+      <mat-spinner diameter="40" />
+    </div>
+  } @else if (errorMessage()) {
+    <p class="error-message">{{ errorMessage() }}</p>
+  } @else if (match(); as currentMatch) {
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>
+          {{ currentMatch.homeTeam.name }} vs {{ currentMatch.awayTeam.name }}
+        </mat-card-title>
+        <mat-card-subtitle>{{ currentMatch.matchDate | date: 'medium' }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="match-detail__teams">
+          <div class="match-detail__team">
+            @if (currentMatch.homeTeam.logoUrl) {
+              <img [src]="currentMatch.homeTeam.logoUrl" [alt]="currentMatch.homeTeam.name" class="match-detail__flag" />
+            }
+            <span>{{ currentMatch.homeTeam.name }}</span>
+          </div>
+
+          <div class="match-detail__score">
+            @if (currentMatch.homeGoals !== null && currentMatch.awayGoals !== null) {
+              {{ currentMatch.homeGoals }} - {{ currentMatch.awayGoals }}
+            } @else {
+              vs
+            }
+          </div>
+
+          <div class="match-detail__team">
+            @if (currentMatch.awayTeam.logoUrl) {
+              <img [src]="currentMatch.awayTeam.logoUrl" [alt]="currentMatch.awayTeam.name" class="match-detail__flag" />
+            }
+            <span>{{ currentMatch.awayTeam.name }}</span>
+          </div>
+        </div>
+
+        <dl class="match-detail__stats">
+          <div>
+            <dt>Fase</dt>
+            <dd>{{ currentMatch.stage }}</dd>
+          </div>
+          <div>
+            <dt>Estado</dt>
+            <dd>
+              <span class="status-badge" [class]="'status-badge--' + currentMatch.status.toLowerCase()">
+                {{ currentMatch.status }}
+              </span>
+            </dd>
+          </div>
+          @if (currentMatch.venue) {
+            <div>
+              <dt>Estadio</dt>
+              <dd>{{ currentMatch.venue }}</dd>
+            </div>
+          }
+          @if (currentMatch.city) {
+            <div>
+              <dt>Ciudad</dt>
+              <dd>{{ currentMatch.city }}</dd>
+            </div>
+          }
+          @if (currentMatch.round) {
+            <div>
+              <dt>Jornada</dt>
+              <dd>{{ currentMatch.round }}</dd>
+            </div>
+          }
+        </dl>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Predicción</mat-card-title>
+        <mat-card-subtitle>Modelos Elo, Poisson y Ensemble</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <button
+          mat-flat-button
+          color="primary"
+          [disabled]="generating()"
+          (click)="generatePrediction()"
+        >
+          @if (generating()) {
+            <mat-spinner diameter="18" class="match-detail__button-spinner" />
+          } @else {
+            <mat-icon>analytics</mat-icon>
+          }
+          Generar predicción
+        </button>
+
+        @if (generateError()) {
+          <p class="error-message">{{ generateError() }}</p>
+        }
+
+        @if (predictions().length === 0) {
+          <p class="match-detail__empty">Aún no hay predicciones generadas para este partido.</p>
+        } @else {
+          <div class="match-detail__predictions">
+            @for (prediction of predictions(); track prediction.model) {
+              <div class="match-detail__prediction">
+                <h3 class="match-detail__prediction-title">{{ modelLabel(prediction.model) }}</h3>
+                <dl class="match-detail__stats">
+                  <div>
+                    <dt>Local</dt>
+                    <dd>{{ prediction.homeWinProbability * 100 | number: '1.0-1' }}%</dd>
+                  </div>
+                  <div>
+                    <dt>Empate</dt>
+                    <dd>{{ prediction.drawProbability * 100 | number: '1.0-1' }}%</dd>
+                  </div>
+                  <div>
+                    <dt>Visitante</dt>
+                    <dd>{{ prediction.awayWinProbability * 100 | number: '1.0-1' }}%</dd>
+                  </div>
+                </dl>
+                @if (prediction.predictedHomeGoals !== null && prediction.predictedAwayGoals !== null) {
+                  <p class="match-detail__predicted-goals">
+                    Goles esperados:
+                    {{ prediction.predictedHomeGoals | number: '1.2-2' }} -
+                    {{ prediction.predictedAwayGoals | number: '1.2-2' }}
+                  </p>
+                }
+              </div>
+            }
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+  }
+</div>

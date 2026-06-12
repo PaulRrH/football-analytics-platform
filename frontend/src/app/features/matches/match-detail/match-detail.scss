@@ -1,0 +1,138 @@
+.match-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &__loading {
+    display: flex;
+    justify-content: center;
+    padding: 2rem;
+  }
+
+  &__teams {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    font-weight: 500;
+  }
+
+  &__team {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  &__flag {
+    width: 32px;
+    height: 22px;
+    object-fit: cover;
+  }
+
+  &__score {
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+
+  &__stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
+    margin: 0;
+
+    dt {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+    }
+
+    dd {
+      margin: 0.25rem 0 0;
+      font-size: 1.1rem;
+      font-weight: 500;
+    }
+  }
+
+  &__empty {
+    text-align: center;
+    color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+    padding: 1rem;
+  }
+
+  &__predictions {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  &__prediction {
+    border: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.12));
+    border-radius: 8px;
+    padding: 1rem;
+  }
+
+  &__prediction-title {
+    margin: 0 0 0.75rem;
+    font-size: 1rem;
+    font-weight: 500;
+  }
+
+  &__predicted-goals {
+    margin: 0.75rem 0 0;
+    color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+  }
+
+  &__button-spinner {
+    display: inline-block;
+    margin-right: 0.5rem;
+  }
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: capitalize;
+  background-color: rgba(0, 0, 0, 0.08);
+
+  &--scheduled {
+    background-color: #e3f2fd;
+    color: #0d47a1;
+  }
+
+  &--live {
+    background-color: #e8f5e9;
+    color: #1b5e20;
+  }
+
+  &--finished {
+    background-color: #ede7f6;
+    color: #4527a0;
+  }
+
+  &--postponed {
+    background-color: #fff3e0;
+    color: #e65100;
+  }
+
+  &--cancelled {
+    background-color: #ffebee;
+    color: #b71c1c;
+  }
+}
+
+.error-message {
+  color: var(--mat-sys-error, #b3261e);
+}

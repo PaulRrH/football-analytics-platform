@@ -146,9 +146,11 @@ Estadísticas de un equipo en un partido concreto.
 
 Único: `[matchId, teamId]` (upsert por equipo participante).
 
-### Prediction (`predictions`) — Fase 3
+### Prediction (`predictions`)
 
-Resultado de un modelo de predicción para un partido.
+Resultado de un modelo de predicción para un partido. Se puebla vía
+`POST /predictions/matches/:id/generate` (ver [API.md](API.md) y
+[PREDICTION_ENGINE.md](PREDICTION_ENGINE.md)).
 
 | Campo | Tipo | Notas |
 |---|---|---|
@@ -159,7 +161,9 @@ Resultado de un modelo de predicción para un partido.
 | `predictedHomeGoals` / `predictedAwayGoals` | `Float?` | esperanza de goles (Poisson) |
 | `generatedAt` | `DateTime` | default `now()` |
 
-Índice: `[matchId, model]`.
+Índice: `[matchId, model]`. Sin restricción de unicidad: cada generación
+agrega una nueva fila (historial); `GET /predictions/matches/:id` devuelve
+solo la más reciente por `model`.
 
 ### TournamentSimulation (`tournament_simulations`) — Fase 4
 

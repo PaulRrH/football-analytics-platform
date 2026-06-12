@@ -91,6 +91,11 @@ export const routes: Routes = [
             loadComponent: () =>
               import('./features/matches/match-form/match-form').then((m) => m.MatchForm),
           },
+          {
+            path: ':id',
+            loadComponent: () =>
+              import('./features/matches/match-detail/match-detail').then((m) => m.MatchDetail),
+          },
         ],
       },
     ],

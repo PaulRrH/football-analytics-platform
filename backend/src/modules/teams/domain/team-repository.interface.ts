@@ -38,6 +38,13 @@ export interface CountTeamsParams {
   search?: string;
 }
 
+export interface CreateRankingHistoryData {
+  eloRating: number;
+  fifaRanking?: number | null;
+  fifaPoints?: number | null;
+  recordedAt: Date;
+}
+
 /**
  * Puerto (Repository pattern) para el agregado Team.
  * La implementacion concreta vive en infrastructure/repositories.
@@ -51,4 +58,8 @@ export interface ITeamRepository {
   update(id: string, data: UpdateTeamData): Promise<Team>;
   delete(id: string): Promise<void>;
   findRankingHistory(teamId: string): Promise<TeamRankingHistory[]>;
+  recordRankingHistory(
+    teamId: string,
+    data: CreateRankingHistoryData,
+  ): Promise<TeamRankingHistory>;
 }

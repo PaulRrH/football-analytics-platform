@@ -93,6 +93,14 @@
           <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef></th>
             <td mat-cell *matCellDef="let match">
+              <a
+                mat-icon-button
+                matTooltip="Ver detalle"
+                [routerLink]="['/matches', match.id]"
+                aria-label="Ver detalle del partido"
+              >
+                <mat-icon>visibility</mat-icon>
+              </a>
               <button
                 mat-icon-button
                 matTooltip="Editar"

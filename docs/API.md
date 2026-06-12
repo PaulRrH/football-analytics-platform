@@ -92,10 +92,38 @@ datos de ambos equipos (`teamA`, `teamB`), agregados del historial
 del más reciente al más antiguo). Responde `400 Bad Request` si `teamA` y
 `teamB` son el mismo equipo.
 
-## Roadmap (no implementado en Fase 2)
+## Fase 3 (implementados)
+
+### Predictions (`/api/v1/predictions`)
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/predictions/matches/:id` | Predicciones más recientes (una por modelo) de un partido. `404` si el partido no existe. |
+| POST | `/predictions/matches/:id/generate` | Genera y persiste predicciones Elo, Poisson y Ensemble para un partido. `404` si el partido no existe. |
+
+Ambos devuelven un array de `PredictionResponseDto`: `id`, `matchId`,
+`model` (`ELO` | `POISSON` | `MONTE_CARLO` | `ENSEMBLE`),
+`homeWinProbability`, `drawProbability`, `awayWinProbability`
+(probabilidades en `[0,1]`, suman 1 por modelo), `predictedHomeGoals` /
+`predictedAwayGoals` (goles esperados, solo en `POISSON` y `ENSEMBLE`) y
+`generatedAt`.
+
+`POST /predictions/matches/:id/generate` calcula:
+
+- **ELO**: a partir del `eloRating` actual de ambos equipos
+  (ver [PREDICTION_ENGINE.md](./PREDICTION_ENGINE.md) §1).
+- **POISSON**: a partir de la media de goles anotados/recibidos por cada
+  equipo en sus partidos `FINISHED` y la media de goles de la liga
+  (ver [PREDICTION_ENGINE.md](./PREDICTION_ENGINE.md) §2).
+- **ENSEMBLE**: combinación de los dos modelos anteriores
+  (ver [PREDICTION_ENGINE.md](./PREDICTION_ENGINE.md) §3).
+
+Cada llamada agrega una nueva fila por modelo (historial); `GET
+/predictions/matches/:id` siempre devuelve solo la más reciente de cada uno.
+
+## Roadmap (no implementado en Fase 3)
 
 | Fase | Endpoints | Descripción |
 |---|---|---|
-| 3 | `GET /predictions/matches/:id`, `POST /predictions/matches/:id/generate` | Predicción Elo + Poisson para un partido |
 | 4 | `POST /simulations`, `GET /simulations/:id`, `GET /simulations/:id/results[/teams/:teamId]` | Simulación Monte Carlo de torneo (async, BullMQ) |
 | 5 | `GET /dashboard/summary`, `GET /dashboard/rankings`, WS `/ws` (`prediction.updated`, `simulation.progress`) | Dashboard agregado y eventos en tiempo real |

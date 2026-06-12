@@ -3,6 +3,7 @@ import { Prisma, Team, TeamRankingHistory } from '@prisma/client';
 import { PrismaService } from '../../../../infrastructure/prisma/prisma.service';
 import {
   CountTeamsParams,
+  CreateRankingHistoryData,
   CreateTeamData,
   FindAllTeamsParams,
   ITeamRepository,
@@ -50,6 +51,15 @@ export class PrismaTeamRepository implements ITeamRepository {
     return this.prisma.teamRankingHistory.findMany({
       where: { teamId },
       orderBy: { recordedAt: 'asc' },
+    });
+  }
+
+  recordRankingHistory(
+    teamId: string,
+    data: CreateRankingHistoryData,
+  ): Promise<TeamRankingHistory> {
+    return this.prisma.teamRankingHistory.create({
+      data: { teamId, ...data },
     });
   }
 
