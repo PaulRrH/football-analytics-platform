@@ -1,0 +1,318 @@
+// Prisma schema - Plataforma de Analisis y Prediccion Mundial de Futbol
+// Diseno completo del modelo de datos (ver docs/DATABASE.md)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  SUPER_ADMIN
+  ANALYST
+  USER
+}
+
+enum Confederation {
+  UEFA
+  CONMEBOL
+  CONCACAF
+  CAF
+  AFC
+  OFC
+}
+
+enum CompetitionType {
+  WORLD_CUP
+  CONTINENTAL
+  QUALIFIER
+  FRIENDLY
+  CLUB
+}
+
+enum CompetitionStatus {
+  UPCOMING
+  ONGOING
+  FINISHED
+}
+
+enum MatchStage {
+  GROUP_STAGE
+  ROUND_OF_16
+  QUARTER_FINAL
+  SEMI_FINAL
+  THIRD_PLACE
+  FINAL
+  QUALIFIER
+  FRIENDLY
+}
+
+enum MatchStatus {
+  SCHEDULED
+  LIVE
+  FINISHED
+  POSTPONED
+  CANCELLED
+}
+
+enum PredictionModel {
+  ELO
+  POISSON
+  MONTE_CARLO
+  ENSEMBLE
+}
+
+enum SimulationStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+// ---------------------------------------------------------------------------
+// Identity & Access (Auth / RBAC / Audit)
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  fullName     String
+  role         Role     @default(USER)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  refreshTokens          RefreshToken[]
+  auditLogs              AuditLog[]
+  requestedSimulations   TournamentSimulation[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
+
+// ---------------------------------------------------------------------------
+// Teams & Rankings
+// ---------------------------------------------------------------------------
+
+model Team {
+  id                String        @id @default(uuid())
+  name              String        @unique
+  shortName         String        @db.VarChar(3)
+  country           String
+  confederation     Confederation
+  logoUrl           String?
+  fifaRanking       Int?
+  fifaRankingPoints Float?
+  eloRating         Float         @default(1500)
+  foundedYear       Int?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  rankingHistory     TeamRankingHistory[]
+  competitionEntries CompetitionTeam[]
+  homeMatches        Match[]                 @relation("HomeTeam")
+  awayMatches        Match[]                 @relation("AwayTeam")
+  matchStatistics    MatchStatistic[]
+  simulationResults  TeamSimulationResult[]
+
+  @@index([confederation])
+  @@map("teams")
+}
+
+model TeamRankingHistory {
+  id          String   @id @default(uuid())
+  teamId      String
+  fifaRanking Int?
+  fifaPoints  Float?
+  eloRating   Float
+  recordedAt  DateTime
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId, recordedAt])
+  @@map("team_ranking_history")
+}
+
+// ---------------------------------------------------------------------------
+// Competitions & Matches
+// ---------------------------------------------------------------------------
+
+model Competition {
+  id        String            @id @default(uuid())
+  name      String
+  type      CompetitionType
+  season    String
+  startDate DateTime
+  endDate   DateTime
+  status    CompetitionStatus @default(UPCOMING)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  teams       CompetitionTeam[]
+  matches     Match[]
+  simulations TournamentSimulation[]
+
+  @@index([type, season])
+  @@map("competitions")
+}
+
+model CompetitionTeam {
+  id            String  @id @default(uuid())
+  competitionId String
+  teamId        String
+  groupName     String?
+  seed          Int?
+
+  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  team        Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([competitionId, teamId])
+  @@map("competition_teams")
+}
+
+model Match {
+  id            String      @id @default(uuid())
+  competitionId String
+  homeTeamId    String
+  awayTeamId    String
+  matchDate     DateTime
+  venue         String?
+  city          String?
+  stage         MatchStage
+  round         String?
+  homeGoals     Int?
+  awayGoals     Int?
+  status        MatchStatus @default(SCHEDULED)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  competition Competition      @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  homeTeam    Team             @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam    Team             @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  statistics  MatchStatistic[]
+  predictions Prediction[]
+
+  @@index([competitionId])
+  @@index([homeTeamId])
+  @@index([awayTeamId])
+  @@index([matchDate])
+  @@map("matches")
+}
+
+model MatchStatistic {
+  id            String @id @default(uuid())
+  matchId       String
+  teamId        String
+  possession    Float?
+  shotsTotal    Int?
+  shotsOnTarget Int?
+  corners       Int?
+  fouls         Int?
+  yellowCards   Int?
+  redCards      Int?
+  passes        Int?
+  passAccuracy  Float?
+  offsides      Int?
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  team  Team  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, teamId])
+  @@map("match_statistics")
+}
+
+// ---------------------------------------------------------------------------
+// Prediction Engine (Fases 3-4)
+// ---------------------------------------------------------------------------
+
+model Prediction {
+  id                 String          @id @default(uuid())
+  matchId            String
+  model              PredictionModel
+  homeWinProbability Float
+  drawProbability    Float
+  awayWinProbability Float
+  predictedHomeGoals Float?
+  predictedAwayGoals Float?
+  generatedAt        DateTime        @default(now())
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@index([matchId, model])
+  @@map("predictions")
+}
+
+model TournamentSimulation {
+  id            String           @id @default(uuid())
+  competitionId String
+  requestedById String?
+  iterations    Int
+  status        SimulationStatus @default(PENDING)
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime         @default(now())
+
+  competition Competition            @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  requestedBy User?                  @relation(fields: [requestedById], references: [id], onDelete: SetNull)
+  teamResults TeamSimulationResult[]
+
+  @@index([competitionId])
+  @@map("tournament_simulations")
+}
+
+model TeamSimulationResult {
+  id                      String @id @default(uuid())
+  simulationId            String
+  teamId                  String
+  groupStageProbability   Float
+  roundOf16Probability    Float?
+  quarterFinalProbability Float?
+  semiFinalProbability    Float?
+  finalProbability        Float?
+  championProbability     Float
+  expectedPosition        Float?
+
+  simulation TournamentSimulation @relation(fields: [simulationId], references: [id], onDelete: Cascade)
+  team       Team                 @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([simulationId, teamId])
+  @@map("team_simulation_results")
+}

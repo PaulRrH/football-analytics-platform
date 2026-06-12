@@ -1,0 +1,113 @@
+<div class="team-form">
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>{{ isEdit() ? 'Editar equipo' : 'Nuevo equipo' }}</mat-card-title>
+      <mat-card-subtitle>
+        {{ isEdit() ? 'Actualiza los datos de la selección' : 'Registra una nueva selección nacional' }}
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      @if (loading()) {
+        <div class="team-form__loading">
+          <mat-spinner diameter="40" />
+        </div>
+      } @else {
+        @if (errorMessage()) {
+          <p class="error-message">{{ errorMessage() }}</p>
+        }
+
+        <form class="team-form__form" [formGroup]="form" (ngSubmit)="submit()">
+          <div class="team-form__row">
+            <mat-form-field appearance="outline" class="team-form__field--grow">
+              <mat-label>Nombre</mat-label>
+              <input matInput formControlName="name" placeholder="Argentina" />
+              @if (form.controls.name.hasError('required')) {
+                <mat-error>El nombre es obligatorio.</mat-error>
+              }
+              @if (form.controls.name.hasError('minlength')) {
+                <mat-error>El nombre debe tener al menos 2 caracteres.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="team-form__field--small">
+              <mat-label>Código (3 letras)</mat-label>
+              <input matInput formControlName="shortName" placeholder="ARG" maxlength="3" />
+              @if (form.controls.shortName.hasError('required')) {
+                <mat-error>Obligatorio.</mat-error>
+              }
+              @if (form.controls.shortName.hasError('minlength') || form.controls.shortName.hasError('maxlength')) {
+                <mat-error>Debe tener 3 caracteres.</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <div class="team-form__row">
+            <mat-form-field appearance="outline" class="team-form__field--grow">
+              <mat-label>País</mat-label>
+              <input matInput formControlName="country" placeholder="Argentina" />
+              @if (form.controls.country.hasError('required')) {
+                <mat-error>El país es obligatorio.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="team-form__field--grow">
+              <mat-label>Confederación</mat-label>
+              <mat-select formControlName="confederation">
+                @for (confederation of confederations; track confederation) {
+                  <mat-option [value]="confederation">{{ confederation }}</mat-option>
+                }
+              </mat-select>
+              @if (form.controls.confederation.hasError('required')) {
+                <mat-error>Selecciona una confederación.</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline" class="team-form__field--full">
+            <mat-label>URL del logo</mat-label>
+            <input matInput formControlName="logoUrl" placeholder="https://flagcdn.com/w320/ar.png" />
+          </mat-form-field>
+
+          <div class="team-form__row">
+            <mat-form-field appearance="outline" class="team-form__field--grow">
+              <mat-label>Ranking FIFA</mat-label>
+              <input matInput type="number" formControlName="fifaRanking" min="1" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="team-form__field--grow">
+              <mat-label>Puntos FIFA</mat-label>
+              <input matInput type="number" formControlName="fifaRankingPoints" />
+            </mat-form-field>
+          </div>
+
+          <div class="team-form__row">
+            <mat-form-field appearance="outline" class="team-form__field--grow">
+              <mat-label>Elo Rating</mat-label>
+              <input matInput type="number" formControlName="eloRating" min="0" max="4000" />
+              @if (form.controls.eloRating.hasError('required')) {
+                <mat-error>El Elo Rating es obligatorio.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="team-form__field--grow">
+              <mat-label>Año de fundación</mat-label>
+              <input matInput type="number" formControlName="foundedYear" min="1800" />
+            </mat-form-field>
+          </div>
+
+          <div class="team-form__actions">
+            <a mat-button routerLink="/teams">Cancelar</a>
+            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="20" />
+              } @else {
+                {{ isEdit() ? 'Guardar cambios' : 'Crear equipo' }}
+              }
+            </button>
+          </div>
+        </form>
+      }
+    </mat-card-content>
+  </mat-card>
+</div>

@@ -1,0 +1,76 @@
+<div class="team-detail">
+  <div class="team-detail__header">
+    <a mat-icon-button routerLink="/teams" aria-label="Volver al listado">
+      <mat-icon>arrow_back</mat-icon>
+    </a>
+
+    @if (canManage() && team(); as currentTeam) {
+      <a mat-flat-button color="primary" [routerLink]="['/teams', currentTeam.id, 'edit']">
+        <mat-icon>edit</mat-icon>
+        Editar
+      </a>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="team-detail__loading">
+      <mat-spinner diameter="40" />
+    </div>
+  } @else if (errorMessage()) {
+    <p class="error-message">{{ errorMessage() }}</p>
+  } @else if (team(); as currentTeam) {
+    <mat-card>
+      <mat-card-header>
+        @if (currentTeam.logoUrl) {
+          <img mat-card-avatar [src]="currentTeam.logoUrl" [alt]="currentTeam.name" />
+        }
+        <mat-card-title>{{ currentTeam.name }}</mat-card-title>
+        <mat-card-subtitle>{{ currentTeam.country }} &middot; {{ currentTeam.confederation }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <dl class="team-detail__stats">
+          <div>
+            <dt>Ranking FIFA</dt>
+            <dd>{{ currentTeam.fifaRanking ?? '—' }}</dd>
+          </div>
+          <div>
+            <dt>Puntos FIFA</dt>
+            <dd>{{ currentTeam.fifaRankingPoints ?? '—' }}</dd>
+          </div>
+          <div>
+            <dt>Elo Rating</dt>
+            <dd>{{ currentTeam.eloRating }}</dd>
+          </div>
+          <div>
+            <dt>Nombre corto</dt>
+            <dd>{{ currentTeam.shortName }}</dd>
+          </div>
+          <div>
+            <dt>Fundación</dt>
+            <dd>{{ currentTeam.foundedYear ?? '—' }}</dd>
+          </div>
+        </dl>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="team-detail__history">
+      <mat-card-header>
+        <mat-card-title>Histórico de ranking</mat-card-title>
+        <mat-card-subtitle>Evolución del Elo Rating y el ranking FIFA</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        @if (hasHistory()) {
+          <apx-chart
+            [series]="chartSeries()"
+            [chart]="chart"
+            [stroke]="stroke"
+            [xaxis]="xaxis()"
+            [yaxis]="yaxis"
+          />
+        } @else {
+          <p class="team-detail__empty">No hay historial de ranking disponible para este equipo.</p>
+        }
+      </mat-card-content>
+    </mat-card>
+  }
+</div>

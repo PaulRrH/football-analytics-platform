@@ -1,0 +1,28 @@
+.register-card {
+  width: 100%;
+}
+
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.error-message {
+  color: var(--mat-sys-error, #b3261e);
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.register-footer {
+  padding: 0 1rem 1rem;
+
+  p {
+    margin: 0;
+    font-size: 0.875rem;
+  }
+}

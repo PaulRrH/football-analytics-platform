@@ -1,0 +1,56 @@
+<mat-sidenav-container class="layout">
+  <mat-sidenav
+    class="layout__sidenav"
+    mode="side"
+    [opened]="sidenavOpened()"
+    [fixedInViewport]="true"
+    [fixedTopGap]="64"
+  >
+    <mat-nav-list>
+      @for (link of navLinks; track link.path) {
+        <a
+          mat-list-item
+          [routerLink]="link.path"
+          routerLinkActive="layout__nav-link--active"
+          [routerLinkActiveOptions]="{ exact: false }"
+        >
+          <mat-icon matListItemIcon>{{ link.icon }}</mat-icon>
+          <span matListItemTitle>{{ link.label }}</span>
+        </a>
+      }
+    </mat-nav-list>
+  </mat-sidenav>
+
+  <mat-sidenav-content class="layout__content">
+    <mat-toolbar color="primary" class="layout__toolbar">
+      <button mat-icon-button (click)="toggleSidenav()" aria-label="Alternar menú">
+        <mat-icon>menu</mat-icon>
+      </button>
+
+      <span class="layout__title">Plataforma Mundial de Fútbol</span>
+
+      <span class="layout__spacer"></span>
+
+      @if (currentUser(); as user) {
+        <button mat-icon-button [matMenuTriggerFor]="userMenu" aria-label="Menú de usuario">
+          <mat-icon>account_circle</mat-icon>
+        </button>
+        <mat-menu #userMenu="matMenu">
+          <div class="layout__user-info">
+            <strong>{{ user.fullName }}</strong>
+            <span>{{ user.email }}</span>
+            <span class="layout__user-role">{{ user.role }}</span>
+          </div>
+          <button mat-menu-item (click)="logout()">
+            <mat-icon>logout</mat-icon>
+            <span>Cerrar sesión</span>
+          </button>
+        </mat-menu>
+      }
+    </mat-toolbar>
+
+    <main class="layout__main">
+      <router-outlet />
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

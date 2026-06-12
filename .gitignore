@@ -1,0 +1,29 @@
+# Dependencias
+node_modules/
+
+# Builds
+dist/
+build/
+.angular/
+
+# Variables de entorno
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editores / SO
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Cobertura de tests
+coverage/
+
+# Prisma
+backend/generated/

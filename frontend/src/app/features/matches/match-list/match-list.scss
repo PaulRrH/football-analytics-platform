@@ -1,0 +1,89 @@
+.match-list {
+  &__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  &__filter {
+    flex: 0 0 160px;
+  }
+
+  &__spacer {
+    flex: 1 1 auto;
+  }
+
+  &__table {
+    width: 100%;
+  }
+
+  &__team {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  &__vs {
+    margin: 0 0.5rem;
+    color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+  }
+
+  &__flag {
+    width: 24px;
+    height: 16px;
+    object-fit: cover;
+  }
+
+  &__loading {
+    display: flex;
+    justify-content: center;
+    padding: 2rem;
+  }
+
+  &__empty {
+    text-align: center;
+    color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+    padding: 1rem;
+  }
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: capitalize;
+  background-color: rgba(0, 0, 0, 0.08);
+
+  &--scheduled {
+    background-color: #e3f2fd;
+    color: #0d47a1;
+  }
+
+  &--live {
+    background-color: #e8f5e9;
+    color: #1b5e20;
+  }
+
+  &--finished {
+    background-color: #ede7f6;
+    color: #4527a0;
+  }
+
+  &--postponed {
+    background-color: #fff3e0;
+    color: #e65100;
+  }
+
+  &--cancelled {
+    background-color: #ffebee;
+    color: #b71c1c;
+  }
+}
+
+.error-message {
+  color: var(--mat-sys-error, #b3261e);
+}

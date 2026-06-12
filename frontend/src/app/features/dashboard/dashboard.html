@@ -1,0 +1,38 @@
+<div class="dashboard">
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>
+        @if (currentUser(); as user) {
+          Bienvenido, {{ user.fullName }}
+        } @else {
+          Bienvenido
+        }
+      </mat-card-title>
+      <mat-card-subtitle>Resumen de la plataforma de análisis del Mundial de Fútbol</mat-card-subtitle>
+    </mat-card-header>
+  </mat-card>
+
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>Ranking Elo &mdash; Top 10 selecciones</mat-card-title>
+      <mat-card-subtitle>Clasificación según el sistema de puntuación Elo</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      @if (loading()) {
+        <div class="dashboard__loading">
+          <mat-spinner diameter="40" />
+        </div>
+      } @else if (errorMessage()) {
+        <p class="error-message">{{ errorMessage() }}</p>
+      } @else {
+        <apx-chart
+          [series]="chartSeries()"
+          [chart]="chart"
+          [plotOptions]="plotOptions"
+          [dataLabels]="dataLabels"
+          [xaxis]="xaxis()"
+        />
+      }
+    </mat-card-content>
+  </mat-card>
+</div>

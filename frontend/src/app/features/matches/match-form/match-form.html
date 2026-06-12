@@ -1,0 +1,135 @@
+<div class="match-form">
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>{{ isEdit() ? 'Editar partido' : 'Nuevo partido' }}</mat-card-title>
+      <mat-card-subtitle>
+        {{ isEdit() ? 'Actualiza la información del partido' : 'Programa un nuevo partido' }}
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      @if (loading()) {
+        <div class="match-form__loading">
+          <mat-spinner diameter="40" />
+        </div>
+      } @else {
+        @if (errorMessage()) {
+          <p class="error-message">{{ errorMessage() }}</p>
+        }
+
+        <form class="match-form__form" [formGroup]="form" (ngSubmit)="submit()">
+          <mat-form-field appearance="outline" class="match-form__field--full">
+            <mat-label>ID de la competición</mat-label>
+            <input matInput formControlName="competitionId" placeholder="UUID de la competición" />
+            @if (form.controls.competitionId.hasError('required')) {
+              <mat-error>El ID de la competición es obligatorio.</mat-error>
+            }
+          </mat-form-field>
+
+          <div class="match-form__row">
+            <mat-form-field appearance="outline" class="match-form__field--grow">
+              <mat-label>Equipo local</mat-label>
+              <mat-select formControlName="homeTeamId">
+                @for (team of teams(); track team.id) {
+                  <mat-option [value]="team.id">{{ team.name }}</mat-option>
+                }
+              </mat-select>
+              @if (form.controls.homeTeamId.hasError('required')) {
+                <mat-error>Selecciona el equipo local.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="match-form__field--grow">
+              <mat-label>Equipo visitante</mat-label>
+              <mat-select formControlName="awayTeamId">
+                @for (team of teams(); track team.id) {
+                  <mat-option [value]="team.id">{{ team.name }}</mat-option>
+                }
+              </mat-select>
+              @if (form.controls.awayTeamId.hasError('required')) {
+                <mat-error>Selecciona el equipo visitante.</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          @if (form.hasError('sameValue')) {
+            <p class="error-message">El equipo local y visitante deben ser distintos.</p>
+          }
+
+          <div class="match-form__row">
+            <mat-form-field appearance="outline" class="match-form__field--grow">
+              <mat-label>Fecha y hora</mat-label>
+              <input matInput type="datetime-local" formControlName="matchDate" />
+              @if (form.controls.matchDate.hasError('required')) {
+                <mat-error>La fecha es obligatoria.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="match-form__field--grow">
+              <mat-label>Fase</mat-label>
+              <mat-select formControlName="stage">
+                @for (stage of stages; track stage) {
+                  <mat-option [value]="stage">{{ stage }}</mat-option>
+                }
+              </mat-select>
+              @if (form.controls.stage.hasError('required')) {
+                <mat-error>Selecciona la fase.</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <div class="match-form__row">
+            <mat-form-field appearance="outline" class="match-form__field--grow">
+              <mat-label>Estadio</mat-label>
+              <input matInput formControlName="venue" placeholder="Estadio Azteca" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="match-form__field--grow">
+              <mat-label>Ciudad</mat-label>
+              <input matInput formControlName="city" placeholder="Ciudad de México" />
+            </mat-form-field>
+          </div>
+
+          <div class="match-form__row">
+            <mat-form-field appearance="outline" class="match-form__field--grow">
+              <mat-label>Jornada</mat-label>
+              <input matInput formControlName="round" placeholder="Jornada 1" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="match-form__field--grow">
+              <mat-label>Estado</mat-label>
+              <mat-select formControlName="status">
+                @for (status of statuses; track status) {
+                  <mat-option [value]="status">{{ status }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <div class="match-form__row">
+            <mat-form-field appearance="outline" class="match-form__field--grow">
+              <mat-label>Goles local</mat-label>
+              <input matInput type="number" formControlName="homeGoals" min="0" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="match-form__field--grow">
+              <mat-label>Goles visitante</mat-label>
+              <input matInput type="number" formControlName="awayGoals" min="0" />
+            </mat-form-field>
+          </div>
+
+          <div class="match-form__actions">
+            <a mat-button routerLink="/matches">Cancelar</a>
+            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="20" />
+              } @else {
+                {{ isEdit() ? 'Guardar cambios' : 'Crear partido' }}
+              }
+            </button>
+          </div>
+        </form>
+      }
+    </mat-card-content>
+  </mat-card>
+</div>
